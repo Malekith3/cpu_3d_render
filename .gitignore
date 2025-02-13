@@ -1,0 +1,6 @@
+# Ignore build directories
+cmake-build-*/
+
+# Ignore external directory
+external/
+
