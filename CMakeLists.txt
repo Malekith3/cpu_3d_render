@@ -21,9 +21,28 @@ if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/SDL2")
     endif()
 endif()
 
+# Check if fmt directory exists, and if not, clone it
+if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/fmt")
+    execute_process(
+            COMMAND git clone --branch master https://github.com/fmtlib/fmt.git ${CMAKE_SOURCE_DIR}/external/fmt
+            RESULT_VARIABLE result
+            OUTPUT_VARIABLE output
+            ERROR_VARIABLE error_output
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+
+    if(result)
+        message(FATAL_ERROR "Git clone failed for fmt: ${error_output}")
+    else()
+        message(STATUS "fmt cloned successfully")
+    endif()
+endif()
+
+
 set("SDL2_BUILD_PATH" "${CMAKE_BINARY_DIR}/external/SDL2")
 # Add SDL2 as a subdirectory
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/SDL2)
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/fmt)
 
 # Add your application source files
 add_executable(${PROJECT_NAME} main.cpp)
@@ -32,7 +51,7 @@ add_executable(${PROJECT_NAME} main.cpp)
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_SOURCE_DIR}/include)
 
 # Link SDL2 libraries in the correct order
-target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2main SDL2::SDL2)
+target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2main SDL2::SDL2 fmt::fmt)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
