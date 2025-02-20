@@ -1,6 +1,15 @@
+
 #include "external/SDL2/include/SDL.h"
 #include "external/fmt/include/fmt/core.h"
 #include <iostream>
+#include <bits/ranges_algobase.h>
+#include "CommonDefines.h"
+#include "Display.h"
+
+namespace
+{
+
+}
 
 int InitWindow(SDL_Renderer*& renderer, SDL_Window*& window)
 {
@@ -31,6 +40,72 @@ int InitWindow(SDL_Renderer*& renderer, SDL_Window*& window)
 
 }
 
+void processInput(bool& isQuitEvent)
+{
+    SDL_Event e;
+    auto getKeySymbol= [](const SDL_Event& event){ return event.key.keysym.sym;};
+    while (SDL_PollEvent(&e) != 0)
+    {
+        switch (e.type)
+        {
+        case SDL_QUIT:
+            isQuitEvent = true;
+            break;
+        case SDL_KEYDOWN:
+            isQuitEvent = (getKeySymbol(e) == SDLK_ESCAPE);
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+void update()
+{
+    static Uint64 prevFrameTime;
+    auto currentFrameTime = SDL_GetTicks64();
+    auto deltaTime = currentFrameTime - prevFrameTime;
+    auto timeToWait = FRAME_TIME - deltaTime;
+
+    if (timeToWait > 0 && timeToWait <=FRAME_TIME)
+    {
+        SDL_Delay(timeToWait);
+    }
+
+    prevFrameTime = SDL_GetTicks64();
+}
+
+void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& colorBuffer, SDL_Texture*& colorBufferTexture)
+{
+    auto renderColorBuffer = [&]()
+    {
+      SDL_UpdateTexture(colorBufferTexture, nullptr, &colorBuffer, static_cast<int>(WINDOW_WIDTH * sizeof(uint32_t)));
+      SDL_RenderCopy(renderer, colorBufferTexture, nullptr, nullptr);
+    };
+
+    SDL_SetRenderDrawColor(renderer, 169, 169, 169, 255);
+    SDL_RenderClear(renderer);
+    renderColorBuffer();
+    colorBuffer.fill(0xFFFFFF00);
+    Render::drawGrid(colorBuffer);
+    Render::drawRect(colorBuffer,40,10,10,10,0xFFFF0000);
+    SDL_RenderPresent(renderer);
+
+}
+
+void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& colorBuffer, SDL_Texture*& colorBufferTexture)
+{
+    std::ranges::fill(colorBuffer, ZERO_VALUE_COLOR_BUFFER);
+    colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, WINDOW_WIDTH, WINDOW_HEIGHT);
+}
+
+void CleanUp(SDL_Window*& window, SDL_Renderer*& renderer, SDL_Texture*& texture)
+{
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+}
 
 int main(int argc, char* argv[])
 {
@@ -43,35 +118,19 @@ int main(int argc, char* argv[])
         return hasError;
     }
 
-    bool quit = false;
-    SDL_Event e;
+    SDL_Texture* colorBufferTexture;
+    std::array<uint32_t, COLOR_BUFFER_SIZE> colorBuffer{};
+    setup(renderer,colorBuffer,colorBufferTexture);
+    auto quit{false};
+
     while (!quit)
     {
-        while (SDL_PollEvent(&e) != 0)
-        {
-            if (e.type == SDL_QUIT)
-            {
-                quit = true;
-            }
-        }
-
-        SDL_SetRenderDrawColor(renderer, 169, 169, 169, 255);
-        SDL_RenderClear(renderer);
-
-
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-        SDL_RenderDrawLine(renderer, 100, 100, 700, 100);
-        SDL_RenderDrawLine(renderer, 700, 100, 700, 500);
-        SDL_RenderDrawLine(renderer, 700, 500, 100, 500);
-        SDL_RenderDrawLine(renderer, 100, 500, 100, 100);
-
-        SDL_RenderPresent(renderer);
-
+        processInput(quit);
+        update();
+        render(renderer, colorBuffer, colorBufferTexture);
     }
 
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    CleanUp(window, renderer, colorBufferTexture);
 
     return 0;
 }
