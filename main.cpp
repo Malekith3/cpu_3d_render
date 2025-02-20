@@ -5,10 +5,12 @@
 #include <bits/ranges_algobase.h>
 #include "CommonDefines.h"
 #include "Display.h"
+#include "Vectors.h"
 
 namespace
 {
-
+    constexpr size_t N_POINTS = 9u*9u*9u;
+    std::array<vect3_t<float>,N_POINTS> awsomePoints;
 }
 
 int InitWindow(SDL_Renderer*& renderer, SDL_Window*& window)
@@ -96,7 +98,20 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
 void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& colorBuffer, SDL_Texture*& colorBufferTexture)
 {
     std::ranges::fill(colorBuffer, ZERO_VALUE_COLOR_BUFFER);
-    colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, WINDOW_WIDTH, WINDOW_HEIGHT);
+    colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
+                                           WINDOW_WIDTH, WINDOW_HEIGHT);
+    size_t point_count = 0u;
+    for (float x = -1.0f; x <=1.0f; x+=0.25f)
+    {
+        for (float y = -1.0f; y <=1.0f; y+=0.25f)
+        {
+            for (float z = -1.0f; z <=1.0f; z+=0.25f)
+            {
+                vect3_t<float> newPoint = {x,y,z};
+                awsomePoints[point_count++] = newPoint;
+            }
+        }
+    }
 }
 
 void CleanUp(SDL_Window*& window, SDL_Renderer*& renderer, SDL_Texture*& texture)
@@ -109,7 +124,6 @@ void CleanUp(SDL_Window*& window, SDL_Renderer*& renderer, SDL_Texture*& texture
 
 int main(int argc, char* argv[])
 {
-
     SDL_Renderer* renderer{nullptr};
     SDL_Window* window{nullptr};
 
