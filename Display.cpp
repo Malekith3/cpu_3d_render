@@ -1,8 +1,13 @@
 #include "Display.h"
+
+#include <algorithm>
 #include <span>
 #include <bits/ranges_algobase.h>
 
-
+namespace
+{
+    float fovFactor = 648.0f;
+}
 namespace Render
 {
 
@@ -34,11 +39,21 @@ void drawRect(ColorBufferArray& colorBuffer, int posX, int posY, size_t width, s
 
 void drawPixel(ColorBufferArray& colorBuffer, int posX, int posY, uint32_t color)
 {
+    if (posX == 0 || posY == 0)
+    {
+        return;
+    }
+
     size_t index{WINDOW_WIDTH*posY + posX};
     if (index < colorBuffer.size())
     {
         colorBuffer[index] = color;
     }
+}
+
+vect2_t<float> project(vect3_t<float>& point)
+{
+    return fovFactor * vect2_t<float>{point.x / point.z ,point.y / point.z};
 }
 
 }

@@ -1,10 +1,9 @@
 #ifndef VECTORS_H
 #define VECTORS_H
 
-#include <cmath>
-
 #include <cmath> // for fabs
 #include <type_traits> // for std::enable_if
+#include <ostream>
 
 template <typename T>
 struct vect2_t
@@ -19,6 +18,13 @@ struct vect2_t
     return {x * scalar, y * scalar};
   }
 
+  template <typename Scalar>
+  friend vect2_t operator*(Scalar scalar, const vect2_t &v)
+  {
+    static_assert(std::is_arithmetic_v<Scalar>, "Scalar must be a numeric type");
+    return {scalar * v.x, scalar * v.y};
+  }
+
   vect2_t operator+(const vect2_t& other) const
   {
     return {x + other.x, y + other.y};
@@ -27,6 +33,13 @@ struct vect2_t
   T dot(const vect2_t& other) const
   {
     return x * other.x + y * other.y;
+  }
+
+  vect2_t rotate(T angle) const
+  {
+      T cosA = std::cos(angle);
+      T sinA = std::sin(angle);
+      return {x * cosA - y * sinA, x * sinA + y * cosA};
   }
 };
 
@@ -51,6 +64,13 @@ struct vect3_t
     return {x * scalar, y * scalar, z * scalar};
   }
 
+  template <typename Scalar>
+  friend vect3_t operator*(Scalar scalar, const vect3_t &v)
+  {
+    static_assert(std::is_arithmetic_v<Scalar>, "Scalar must be a numeric type");
+    return {scalar * v.x, scalar * v.y, scalar*v.z};
+  }
+
   vect3_t operator+(const vect3_t& other) const
   {
     return {x + other.x, y + other.y, z + other.z};
@@ -59,6 +79,27 @@ struct vect3_t
   T dot(const vect3_t& other) const
   {
     return x * other.x + y * other.y + z * other.z;
+  }
+
+  vect3_t rotateX(T angleRad) const
+  {
+      T cosA = std::cos(angleRad);
+      T sinA = std::sin(angleRad);
+      return {x, y * cosA - z * sinA, y * sinA + z * cosA};
+  }
+
+  vect3_t rotateY(T angleRad) const
+  {
+    T cosA = std::cos(angleRad);
+    T sinA = std::sin(angleRad);
+    return {x * cosA + z * sinA, y, -x * sinA + z * cosA};
+  }
+
+  vect3_t rotateZ(T angleRad) const
+  {
+    T cosA = std::cos(angleRad);
+    T sinA = std::sin(angleRad);
+    return {x * cosA - y * sinA, x * sinA + y * cosA, z};
   }
 };
 

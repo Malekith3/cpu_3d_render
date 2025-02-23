@@ -11,6 +11,8 @@ namespace
 {
     constexpr size_t N_POINTS = 9u*9u*9u;
     std::array<vect3_t<float>,N_POINTS> awsomePoints;
+    std::array<vect2_t<float>,N_POINTS> projectedPoints;
+    vect3_t<float> cameraPosition{0.0f,0.0f,-5.0f};
 }
 
 int InitWindow(SDL_Renderer*& renderer, SDL_Window*& window)
@@ -75,6 +77,23 @@ void update()
     }
 
     prevFrameTime = SDL_GetTicks64();
+    static vect3_t<float> cubeRotation;
+    cubeRotation.x += +0.01;
+    cubeRotation.y += +0.01;
+    cubeRotation.z += +0.01;
+    for (auto index{0u}; index < awsomePoints.size(); index++)
+    {
+        auto& point = awsomePoints[index];
+        auto transformedPoint = point.rotateX(cubeRotation.x);
+        transformedPoint = transformedPoint.rotateY(cubeRotation.y);
+        transformedPoint = transformedPoint.rotateZ(cubeRotation.z);
+
+        transformedPoint.z -= cameraPosition.z;
+
+        auto projectedPoint = Render::project(transformedPoint);
+        projectedPoints[index] = projectedPoint;
+    }
+
 }
 
 void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& colorBuffer, SDL_Texture*& colorBufferTexture)
@@ -85,12 +104,12 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
       SDL_RenderCopy(renderer, colorBufferTexture, nullptr, nullptr);
     };
 
-    SDL_SetRenderDrawColor(renderer, 169, 169, 169, 255);
-    SDL_RenderClear(renderer);
+    for (auto& point : projectedPoints)
+    {
+        Render::drawRect(colorBuffer,point.x + WINDOW_WIDTH/2,point.y + WINDOW_HEIGHT/2,4,4,0xFFFFFF00);
+    }
     renderColorBuffer();
-    colorBuffer.fill(0xFFFFFF00);
-    Render::drawGrid(colorBuffer);
-    Render::drawRect(colorBuffer,40,10,10,10,0xFFFF0000);
+    colorBuffer.fill(0xFF000000);
     SDL_RenderPresent(renderer);
 
 }
