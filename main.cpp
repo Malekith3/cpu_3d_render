@@ -2,17 +2,18 @@
 #include "external/SDL2/include/SDL.h"
 #include "external/fmt/include/fmt/core.h"
 #include <iostream>
-#include <bits/ranges_algobase.h>
+#include <vector>
+#include <algorithm>
 #include "CommonDefines.h"
 #include "Display.h"
 #include "Vectors.h"
+#include "Mesh.h"
 
 namespace
 {
-    constexpr size_t N_POINTS = 9u*9u*9u;
-    std::array<vect3_t<float>,N_POINTS> awsomePoints;
-    std::array<vect2_t<float>,N_POINTS> projectedPoints;
     vect3_t<float> cameraPosition{0.0f,0.0f,-5.0f};
+    std::vector<triangle_t> trianglesToRender;
+
 }
 
 int InitWindow(SDL_Renderer*& renderer, SDL_Window*& window)
@@ -67,9 +68,11 @@ void processInput(bool& isQuitEvent)
 void update()
 {
     static Uint64 prevFrameTime;
-    auto currentFrameTime = SDL_GetTicks64();
-    auto deltaTime = currentFrameTime - prevFrameTime;
-    auto timeToWait = FRAME_TIME - deltaTime;
+    const auto currentFrameTime = SDL_GetTicks64();
+    const auto deltaTime = currentFrameTime - prevFrameTime;
+    const auto timeToWait = FRAME_TIME - deltaTime;
+
+    trianglesToRender.clear();
 
     if (timeToWait > 0 && timeToWait <=FRAME_TIME)
     {
@@ -81,17 +84,30 @@ void update()
     cubeRotation.x += +0.01;
     cubeRotation.y += +0.01;
     cubeRotation.z += +0.01;
-    for (auto index{0u}; index < awsomePoints.size(); index++)
+    static auto offsetIndex = [](const int index){return index - 1;};
+    for (const auto& [aFaceVert, bFaceVert, cFaceVert] : mesh_faces)
     {
-        auto& point = awsomePoints[index];
-        auto transformedPoint = point.rotateX(cubeRotation.x);
-        transformedPoint = transformedPoint.rotateY(cubeRotation.y);
-        transformedPoint = transformedPoint.rotateZ(cubeRotation.z);
+        std::array<vect3_t<float>,3> faceVert{{
+                mesh_vert[offsetIndex(aFaceVert)],
+                mesh_vert[offsetIndex(bFaceVert)],
+                mesh_vert[offsetIndex(cFaceVert)]
+            }};
 
-        transformedPoint.z -= cameraPosition.z;
+        triangle_t projectedTriangle;
 
-        auto projectedPoint = Render::project(transformedPoint);
-        projectedPoints[index] = projectedPoint;
+        std::ranges::for_each(faceVert,[&projectedTriangle](auto& vert)
+        {
+            static size_t cnt;
+            auto transformedVert = vert.rotateX(cubeRotation.x);
+            transformedVert = transformedVert.rotateY(cubeRotation.y);
+            transformedVert = transformedVert.rotateZ(cubeRotation.z);
+
+            transformedVert.z -= cameraPosition.z;
+
+            projectedTriangle.points[cnt] = (Render::project(transformedVert) + vect2_t<float>(WINDOW_WIDTH/2,WINDOW_HEIGHT/2));
+        });
+
+        trianglesToRender.push_back(projectedTriangle);
     }
 
 }
@@ -104,9 +120,12 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
       SDL_RenderCopy(renderer, colorBufferTexture, nullptr, nullptr);
     };
 
-    for (auto& point : projectedPoints)
+    for (auto& [points] : trianglesToRender)
     {
-        Render::drawRect(colorBuffer,point.x + WINDOW_WIDTH/2,point.y + WINDOW_HEIGHT/2,4,4,0xFFFFFF00);
+        std::ranges::for_each(points,[&colorBuffer](const auto& point)
+        {
+            Render::drawRect(colorBuffer,point.x,point.y,3,3,0xFFFFFF00);
+        });
     }
     renderColorBuffer();
     colorBuffer.fill(0xFF000000);
@@ -119,18 +138,6 @@ void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& col
     std::ranges::fill(colorBuffer, ZERO_VALUE_COLOR_BUFFER);
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
                                            WINDOW_WIDTH, WINDOW_HEIGHT);
-    size_t point_count = 0u;
-    for (float x = -1.0f; x <=1.0f; x+=0.25f)
-    {
-        for (float y = -1.0f; y <=1.0f; y+=0.25f)
-        {
-            for (float z = -1.0f; z <=1.0f; z+=0.25f)
-            {
-                vect3_t<float> newPoint = {x,y,z};
-                awsomePoints[point_count++] = newPoint;
-            }
-        }
-    }
 }
 
 void CleanUp(SDL_Window*& window, SDL_Renderer*& renderer, SDL_Texture*& texture)
