@@ -3,10 +3,10 @@
 #include "Triangle.h"
 
 
-constexpr size_t N_MESH_VERT = 8u;
-constexpr size_t N_MESH_FACES = 6u*2u;
+constexpr size_t N_CUBE_MESH_VERT = 8u;
+constexpr size_t N_CUBE_MESH_FACES = 6u*2u;
 
-constexpr std::array<vect3_t<float>, N_MESH_VERT> mesh_vert = {{
+constexpr std::array<vect3_t<float>, N_CUBE_MESH_VERT> cubeMeshVert = {{
     { .x = -1, .y = -1, .z = -1 }, // 1
     { .x = -1, .y =  1, .z = -1 }, // 2
     { .x =  1, .y =  1, .z = -1 }, // 3
@@ -18,7 +18,7 @@ constexpr std::array<vect3_t<float>, N_MESH_VERT> mesh_vert = {{
 }};
 
 
-constexpr std::array<face_t, N_MESH_FACES> mesh_faces = {{
+constexpr std::array<face_t, N_CUBE_MESH_FACES> cubeMeshFaces = {{
     // front
     { .a = 1, .b = 2, .c = 3 },
     { .a = 1, .b = 3, .c = 4 },
@@ -38,4 +38,11 @@ constexpr std::array<face_t, N_MESH_FACES> mesh_faces = {{
     { .a = 6, .b = 8, .c = 1 },
     { .a = 6, .b = 1, .c = 4 }
     }};
+
+struct Mesh
+{
+    std::vector<vect3_t<float>> vertices;
+    std::vector<face_t> faces;
+    vect3_t<float> rotation;
+};
 #endif //MESH_H

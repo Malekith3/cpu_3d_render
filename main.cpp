@@ -13,6 +13,7 @@ namespace
 {
     vect3_t<float> cameraPosition{0.0f,0.0f,-5.0f};
     std::vector<triangle_t> trianglesToRender;
+    Mesh globalMesh;
 
 }
 
@@ -80,17 +81,16 @@ void update()
     }
 
     prevFrameTime = SDL_GetTicks64();
-    static vect3_t<float> cubeRotation;
-    cubeRotation.x += +0.01;
-    cubeRotation.y += +0.01;
-    cubeRotation.z += +0.01;
+    globalMesh.rotation.x += +0.01;
+    globalMesh.rotation.y += +0.01;
+    globalMesh.rotation.z += +0.01;
     static auto offsetIndex = [](const int index){return index - 1;};
-    for (const auto& [aFaceVert, bFaceVert, cFaceVert] : mesh_faces)
+    for (const auto& [aFaceVert, bFaceVert, cFaceVert] : globalMesh.faces)
     {
         std::array<vect3_t<float>,3> faceVert{{
-                mesh_vert[offsetIndex(aFaceVert)],
-                mesh_vert[offsetIndex(bFaceVert)],
-                mesh_vert[offsetIndex(cFaceVert)]
+                globalMesh.vertices[offsetIndex(aFaceVert)],
+                globalMesh.vertices[offsetIndex(bFaceVert)],
+                globalMesh.vertices[offsetIndex(cFaceVert)]
             }};
 
         triangle_t projectedTriangle;
@@ -98,9 +98,9 @@ void update()
         std::ranges::for_each(faceVert,[&projectedTriangle](auto& vert)
         {
             static size_t cnt;
-            auto transformedVert = vert.rotateX(cubeRotation.x);
-            transformedVert = transformedVert.rotateY(cubeRotation.y);
-            transformedVert = transformedVert.rotateZ(cubeRotation.z);
+            auto transformedVert = vert.rotateX(globalMesh.rotation.x);
+            transformedVert = transformedVert.rotateY(globalMesh.rotation.y);
+            transformedVert = transformedVert.rotateZ(globalMesh.rotation.z);
 
             transformedVert.z -= cameraPosition.z;
 
@@ -138,11 +138,19 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
 
 }
 
+void loadCubeMesh()
+{
+    std::ranges::copy(cubeMeshVert, std::back_inserter(globalMesh.vertices));
+    std::ranges::copy(cubeMeshFaces, std::back_inserter(globalMesh.faces));
+}
+
 void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& colorBuffer, SDL_Texture*& colorBufferTexture)
 {
     std::ranges::fill(colorBuffer, ZERO_VALUE_COLOR_BUFFER);
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
                                            WINDOW_WIDTH, WINDOW_HEIGHT);
+
+    loadCubeMesh();
 }
 
 void CleanUp(SDL_Window*& window, SDL_Renderer*& renderer, SDL_Texture*& texture)
