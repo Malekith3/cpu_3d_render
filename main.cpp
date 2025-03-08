@@ -105,6 +105,8 @@ void update()
             transformedVert.z -= cameraPosition.z;
 
             projectedTriangle.points[cnt] = (Render::project(transformedVert) + vect2_t<float>(WINDOW_WIDTH/2,WINDOW_HEIGHT/2));
+            ++cnt;
+            cnt = (cnt > 2u) ? 0u : cnt;
         });
 
         trianglesToRender.push_back(projectedTriangle);
@@ -126,6 +128,9 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
         {
             Render::drawRect(colorBuffer,point.x,point.y,3,3,0xFFFFFF00);
         });
+
+        auto [point1, point2, point3] = points;
+        Render::drawRect(colorBuffer,{point1.x, point1.y}, {point2.x,point2.y}, {point3.x,point3.y});
     }
     renderColorBuffer();
     colorBuffer.fill(0xFF000000);
