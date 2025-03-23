@@ -30,6 +30,11 @@ struct vect2_t
     return {x + other.x, y + other.y};
   }
 
+  vect2_t operator-(const vect2_t& other) const  // Subtraction operator
+  {
+    return {x - other.x, y - other.y};
+  }
+
   T dot(const vect2_t& other) const
   {
     return x * other.x + y * other.y;
@@ -42,12 +47,12 @@ struct vect2_t
       return {x * cosA - y * sinA, x * sinA + y * cosA};
   }
 
-  float magnitude() const
+  T magnitude() const
   {
     return std::sqrt(x * x + y * y);
   }
 
-  float magnitudeSquared() const
+  T magnitudeSquared() const
   {
     return x * x + y * y;
   }
@@ -86,9 +91,23 @@ struct vect3_t
     return {x + other.x, y + other.y, z + other.z};
   }
 
+  vect3_t operator-(const vect3_t& other) const  // Subtraction operator
+  {
+    return {x - other.x, y - other.y, z - other.z};
+  }
+
   T dot(const vect3_t& other) const
   {
     return x * other.x + y * other.y + z * other.z;
+  }
+
+  vect3_t cross(const vect3_t& other) const
+  {
+    return {
+      y * other.z - z * other.y,
+      z * other.x - x * other.z,
+      x * other.y - y * other.x
+    };
   }
 
   vect3_t rotateX(T angleRad) const
@@ -112,12 +131,12 @@ struct vect3_t
     return {x * cosA - y * sinA, x * sinA + y * cosA, z};
   }
 
-  float magnitude() const
+  T magnitude() const
   {
     return std::sqrt(x * x + y * y + z * z);
   }
 
-  float magnitudeSquared() const
+  T magnitudeSquared() const
   {
     return x * x + y * y + z * z;
   }
@@ -129,4 +148,5 @@ std::ostream& operator<<(std::ostream& os, const vect3_t<T>& vec)
   os << "vect3_t(" << vec.x << ", " << vec.y << ", " << vec.z << ")";
   return os;
 }
+
 #endif //VECTORS_H
