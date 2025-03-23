@@ -1,9 +1,10 @@
 
 #include "external/SDL2/include/SDL.h"
-#include "external/fmt/include/fmt/core.h"
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <format>
+
 #include "CommonDefines.h"
 #include "Display.h"
 #include "Vectors.h"
@@ -21,14 +22,14 @@ int InitWindow(SDL_Renderer*& renderer, SDL_Window*& window)
 {
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
     {
-        std::cerr << fmt::format("SDL_Init Error: {}", SDL_GetError()) << std::endl;
+        std::cerr << std::format("SDL_Init Error: {}", SDL_GetError()) << std::endl;
         return 1;
     }
 
     window = SDL_CreateWindow("SDL2 Application", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
     if (window == nullptr)
     {
-        std::cerr << fmt::format("SDL_Init Error: {}", SDL_GetError()) << std::endl;
+        std::cerr << std::format("SDL_Init Error: {}", SDL_GetError()) << std::endl;
         SDL_Quit();
         return 1;
     }
@@ -36,7 +37,7 @@ int InitWindow(SDL_Renderer*& renderer, SDL_Window*& window)
     renderer = SDL_CreateRenderer(window, -1, 0);
     if (renderer == nullptr)
     {
-        std::cerr << fmt::format("SDL_Init Error: {}", SDL_GetError()) << std::endl;
+        std::cerr << std::format("SDL_Init Error: {}", SDL_GetError()) << std::endl;
         SDL_DestroyWindow(window);
         SDL_Quit();
         return 1;
@@ -150,7 +151,12 @@ void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& col
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
                                            WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    loadCubeMesh();
+    // loadCubeMesh();
+    std::vector<vect3_t<float>> loadedVertex;
+    std::vector<face_t> loadedFaces;
+    LoadOBJFileSimplified("./assets/f22.obj", loadedVertex, loadedFaces);
+    std::ranges::copy(loadedVertex, std::back_inserter(globalMesh.vertices));
+    std::ranges::copy(loadedFaces, std::back_inserter(globalMesh.faces));
 }
 
 void CleanUp(SDL_Window*& window, SDL_Renderer*& renderer, SDL_Texture*& texture)

@@ -45,7 +45,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/external/SDL2)
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/fmt)
 
 # Add your application source files
-add_executable(${PROJECT_NAME} main.cpp Display.cpp)
+add_executable(${PROJECT_NAME} main.cpp Display.cpp Mesh.cpp Triangle.cpp)
 
 # Ensure the correct include directories are used
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_SOURCE_DIR}/include)

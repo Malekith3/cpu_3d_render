@@ -1,5 +1,8 @@
 #ifndef TRIANGLE_H
 #define TRIANGLE_H
+#include <array>
+
+#include "Vectors.h"
 
 struct face_t
 {

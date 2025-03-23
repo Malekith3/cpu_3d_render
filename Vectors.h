@@ -41,6 +41,16 @@ struct vect2_t
       T sinA = std::sin(angle);
       return {x * cosA - y * sinA, x * sinA + y * cosA};
   }
+
+  float magnitude() const
+  {
+    return std::sqrt(x * x + y * y);
+  }
+
+  float magnitudeSquared() const
+  {
+    return x * x + y * y;
+  }
 };
 
 template <typename T>
@@ -100,6 +110,16 @@ struct vect3_t
     T cosA = std::cos(angleRad);
     T sinA = std::sin(angleRad);
     return {x * cosA - y * sinA, x * sinA + y * cosA, z};
+  }
+
+  float magnitude() const
+  {
+    return std::sqrt(x * x + y * y + z * z);
+  }
+
+  float magnitudeSquared() const
+  {
+    return x * x + y * y + z * z;
   }
 };
 

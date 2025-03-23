@@ -1,6 +1,11 @@
 #ifndef MESH_H
 #define MESH_H
+#include <array>
+#include <vector>
+
 #include "Triangle.h"
+#include "filesystem"
+#include "Vectors.h"
 
 
 constexpr size_t N_CUBE_MESH_VERT = 8u;
@@ -45,4 +50,13 @@ struct Mesh
     std::vector<face_t> faces;
     vect3_t<float> rotation;
 };
+
+void LoadOBJFile(const std::filesystem::path& pathToOBJ,
+                 std::vector<vect3_t<float>>& vertexArray,
+                 std::vector<face_t>& facesArray);
+
+void LoadOBJFileSimplified(const std::filesystem::path& pathToOBJ,
+                           std::vector<vect3_t<float>>& vertexArray,
+                           std::vector<face_t>& facesArray);
+
 #endif //MESH_H
