@@ -56,6 +56,12 @@ struct vect2_t
   {
     return x * x + y * y;
   }
+
+  vect2_t normalize() const
+  {
+    auto mag = magnitude();
+    return *this * (1/mag);
+  }
 };
 
 template <typename T>
@@ -134,6 +140,12 @@ struct vect3_t
   T magnitude() const
   {
     return std::sqrt(x * x + y * y + z * z);
+  }
+
+  vect3_t normalize() const
+  {
+    auto mag = magnitude();
+    return *this * (1/mag);
   }
 
   T magnitudeSquared() const

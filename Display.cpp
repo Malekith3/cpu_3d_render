@@ -7,7 +7,7 @@
 
 namespace
 {
-    float fovFactor = 648.0f;
+    float fovFactor = 600.0f;
 }
 namespace Render
 {
@@ -162,5 +162,34 @@ void drawLine(ColorBufferArray& colorBuffer, const Point& startPoint, const Poin
     }
 
 }
+
+
+void drawFlatUpTriangle(ColorBufferArray& colorBuffer, triangle_t& triangle, size_t color)
+{
+    auto [point0, point1, point2] = triangle._points;
+    float invSlop1 = (point1.x - point0.x) / (point1.y - point0.y);
+    float invSlop2 = (point2.x - point0.x) / (point2.y - point0.y);
+
+    float xStart = point0.x;
+    float xEnd = point0.x;
+
+    for (float y = point0.y; y <= point2.y; y++)
+    {
+        drawLine(colorBuffer,{xStart,y}, {xEnd,y},LineRasterAlgo::DDA,color);
+        xStart+= invSlop1;
+        xEnd+=invSlop2;
+    }
+
+}
+
+void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const triangle_t& triangle, const size_t color)
+{
+    auto triangleSorted{triangle.sortByHeight()};
+    auto midPointOfTriangle {triangleSorted.getMidPoint()};
+    triangle_t upTriangle{triangleSorted._points[0], triangleSorted._points[1], midPointOfTriangle};
+    drawFlatUpTriangle(colorBuffer, upTriangle, color);
+
+}
+
 
 }

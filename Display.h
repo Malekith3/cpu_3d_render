@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "CommonDefines.h"
+#include "Triangle.h"
 #include "Vectors.h"
 
 namespace Render
@@ -30,6 +31,7 @@ void drawRect(ColorBufferArray& colorBuffer, const Point& point1, const Point& p
 void drawLine(ColorBufferArray& colorBuffer, const Point& startPoint, const Point& endPoint,
               LineRasterAlgo algoType = LineRasterAlgo::DDA, uint32_t  color = 0xFFFFFF00);
 vect2_t<float> project(vect3_t<float>& point);
+void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const triangle_t& triangle, size_t color = 0xFFFFFF00);
 }
 
 #endif //DISPLAY_H

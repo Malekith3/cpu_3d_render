@@ -13,7 +13,12 @@ struct face_t
 
 struct triangle_t
 {
-    std::array<vect2_t<float>,3> points;
+    std::array<vect2_t<float>,3> _points;
+
+
+    [[nodiscard]] triangle_t sortByHeight() const;
+
+    [[nodiscard]] vect2_t<float> getMidPoint() const;
 };
 
 #endif //TRIANGLE_H

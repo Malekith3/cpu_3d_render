@@ -12,9 +12,16 @@
 
 namespace
 {
-    vect3_t<float> cameraPosition{0.0f,0.0f,-5.0f};
+    vect3_t<float> cameraPosition{0.0f,0.0f,0.0f};
     std::vector<triangle_t> trianglesToRender;
     Mesh globalMesh;
+
+    enum class VertexPoint : uint8_t
+    {
+        A,
+        B,
+        C
+    };
 
 }
 
@@ -94,23 +101,43 @@ void update()
                 globalMesh.vertices[offsetIndex(cFaceVert)]
             }};
 
-        triangle_t projectedTriangle;
+        std::array<vect3_t<float>,3> transformedVertices{};
 
-        std::ranges::for_each(faceVert,[&projectedTriangle](auto& vert)
+        //Transform
+        std::ranges::transform(faceVert, transformedVertices.begin(), [](const auto& vert)
+            {
+                auto transformedVert = vert
+                    .rotateX(globalMesh.rotation.x)
+                    .rotateY(globalMesh.rotation.y)
+                    .rotateZ(globalMesh.rotation.z);
+
+                transformedVert.z -= -5.0f;
+                return transformedVert;
+            });
+
+        //Culling
+        auto vectorAB = transformedVertices[static_cast<size_t>(VertexPoint::B)] -
+                                    transformedVertices[static_cast<size_t>(VertexPoint::A)];
+        auto vectorAC =  transformedVertices[static_cast<size_t>(VertexPoint::C)] -
+                                     transformedVertices[static_cast<size_t>(VertexPoint::A)];
+        auto cameraVector =     cameraPosition -
+                                            transformedVertices[static_cast<size_t>(VertexPoint::A)];
+        auto faceNormal = vectorAB.cross(vectorAC).normalize();
+        auto projectionNormal = faceNormal.dot(cameraVector);
+
+        if (projectionNormal >= -std::numeric_limits<float>::epsilon())
         {
-            static size_t cnt;
-            auto transformedVert = vert.rotateX(globalMesh.rotation.x);
-            transformedVert = transformedVert.rotateY(globalMesh.rotation.y);
-            transformedVert = transformedVert.rotateZ(globalMesh.rotation.z);
+            //Project
+            triangle_t projectedTriangle;
+            std::ranges::transform(transformedVertices, projectedTriangle._points.begin(), [](auto& vert)
+                {
+                    auto projectedPoint = Render::project(vert);
+                    return projectedPoint + vect2_t<float>(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+                });
 
-            transformedVert.z -= cameraPosition.z;
+            trianglesToRender.push_back(projectedTriangle);
+        }
 
-            projectedTriangle.points[cnt] = (Render::project(transformedVert) + vect2_t<float>(WINDOW_WIDTH/2,WINDOW_HEIGHT/2));
-            ++cnt;
-            cnt = (cnt > 2u) ? 0u : cnt;
-        });
-
-        trianglesToRender.push_back(projectedTriangle);
     }
 
 }
@@ -123,26 +150,24 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
       SDL_RenderCopy(renderer, colorBufferTexture, nullptr, nullptr);
     };
 
-    for (auto& [points] : trianglesToRender)
-    {
-        std::ranges::for_each(points,[&colorBuffer](const auto& point)
-        {
-            Render::drawRect(colorBuffer,point.x,point.y,3,3,0xFFFFFF00);
-        });
-
-        auto [point1, point2, point3] = points;
-        Render::drawRect(colorBuffer,{point1.x, point1.y}, {point2.x,point2.y}, {point3.x,point3.y});
-    }
+    // for (auto& [points] : trianglesToRender)
+    // {
+    //     std::ranges::for_each(points,[&colorBuffer](const auto& point)
+    //     {
+    //         Render::drawRect(colorBuffer,point.x,point.y,3,3,0xFFFFFF00);
+    //     });
+    //
+    //     auto [point1, point2, point3] = points;
+    //     Render::drawRect(colorBuffer,{point1.x, point1.y}, {point2.x,point2.y}, {point3.x,point3.y});
+    // }
+    triangle_t triangle{50,50,50 ,400, 300 ,450};
+    auto [point1, point2, point3] = triangle._points;
+    Render::drawRect(colorBuffer,{point1.x, point1.y}, {point2.x,point2.y}, {point3.x,point3.y});
+    Render::drawFilledTriangleFlatBottom(colorBuffer, triangle, 0xFFFFFF00);
     renderColorBuffer();
     colorBuffer.fill(0xFF000000);
     SDL_RenderPresent(renderer);
 
-}
-
-void loadCubeMesh()
-{
-    std::ranges::copy(cubeMeshVert, std::back_inserter(globalMesh.vertices));
-    std::ranges::copy(cubeMeshFaces, std::back_inserter(globalMesh.faces));
 }
 
 void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& colorBuffer, SDL_Texture*& colorBufferTexture)
@@ -151,7 +176,6 @@ void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& col
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
                                            WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    // loadCubeMesh();
     std::vector<vect3_t<float>> loadedVertex;
     std::vector<face_t> loadedFaces;
     LoadOBJFileSimplified("./assets/f22.obj", loadedVertex, loadedFaces);
