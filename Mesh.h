@@ -48,7 +48,9 @@ struct Mesh
 {
     std::vector<vect3_t<float>> vertices;
     std::vector<face_t> faces;
-    vect3_t<float> rotation;
+    vect3_t<float> rotation{0.0,0.0,0.0};
+    vect3_t<float> scale{1.0f,1.0f,1.0f};
+    vect3_t<float> translation{0.0f,0.0f,0.0f};
 };
 
 void LoadOBJFile(const std::filesystem::path& pathToOBJ,

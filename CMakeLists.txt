@@ -21,20 +21,19 @@ if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/SDL2")
     endif()
 endif()
 
-# Check if fmt directory exists, and if not, clone it
-if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/fmt")
+if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/glm")
     execute_process(
-            COMMAND git clone --branch master https://github.com/fmtlib/fmt.git ${CMAKE_SOURCE_DIR}/external/fmt
-            RESULT_VARIABLE result
-            OUTPUT_VARIABLE output
-            ERROR_VARIABLE error_output
+            COMMAND git clone https://github.com/g-truc/glm.git ${CMAKE_SOURCE_DIR}/external/glm
+            RESULT_VARIABLE glm_result
+            OUTPUT_VARIABLE glm_output
+            ERROR_VARIABLE glm_error_output
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
 
-    if(result)
-        message(FATAL_ERROR "Git clone failed for fmt: ${error_output}")
+    if(glm_result)
+        message(FATAL_ERROR "GLM clone failed: ${glm_error_output}")
     else()
-        message(STATUS "fmt cloned successfully")
+        message(STATUS "GLM cloned successfully")
     endif()
 endif()
 
@@ -42,7 +41,7 @@ endif()
 set("SDL2_BUILD_PATH" "${CMAKE_BINARY_DIR}/external/SDL2")
 # Add SDL2 as a subdirectory
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/SDL2)
-add_subdirectory(${CMAKE_SOURCE_DIR}/external/fmt)
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/glm)
 
 # Add your application source files
 add_executable(${PROJECT_NAME} main.cpp Display.cpp Mesh.cpp Triangle.cpp)
@@ -51,7 +50,7 @@ add_executable(${PROJECT_NAME} main.cpp Display.cpp Mesh.cpp Triangle.cpp)
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_SOURCE_DIR}/include)
 
 # Link SDL2 libraries in the correct order
-target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2main SDL2::SDL2 fmt::fmt)
+target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2main SDL2::SDL2 glm)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different

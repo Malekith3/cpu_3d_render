@@ -1,5 +1,5 @@
 
-#include "external/SDL2/include/SDL.h"
+#include <SDL2/SDL.h>
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -10,6 +10,10 @@
 #include "Vectors.h"
 #include "Mesh.h"
 #include "Colors.h"
+#include <glm/glm.hpp>
+#include "GlmAdapter.h"
+
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace
 {
@@ -138,9 +142,13 @@ void update()
     }
 
     prevFrameTime = SDL_GetTicks64();
-    globalMesh.rotation.x += +0.01;
-    globalMesh.rotation.y += +0.01;
-    globalMesh.rotation.z += +0.01;
+    globalMesh.rotation.x += +0.5;
+    globalMesh.rotation.y += +0.5;
+    globalMesh.rotation.z += +0.5;
+
+    globalMesh.translation.x += 0.01;
+    // globalMesh.scale.x += 0.001;
+
     static auto offsetIndex = [](const int index){return index - 1;};
     for (const auto& [aFaceVert, bFaceVert, cFaceVert] : globalMesh.faces)
     {
@@ -155,13 +163,18 @@ void update()
         //Transform
         std::ranges::transform(faceVert, transformedVertices.begin(), [](const auto& vert)
             {
-                auto transformedVert = vert
-                    .rotateX(globalMesh.rotation.x)
-                    .rotateY(globalMesh.rotation.y)
-                    .rotateZ(globalMesh.rotation.z);
+                const glm::vec4 glmVert(vert.x,vert.y,vert.z, 1.0f);
+                const glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(globalMesh.rotation.x), glm::vec3(1, 0, 0)) *
+                                                 glm::rotate(glm::mat4(1.0f), glm::radians(globalMesh.rotation.y), glm::vec3(0, 1, 0)) *
+                                                 glm::rotate(glm::mat4(1.0f), glm::radians(globalMesh.rotation.z), glm::vec3(0, 0, 1));
 
-                transformedVert.z -= -5.0f;
-                return transformedVert;
+
+                const glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(globalMesh.translation.x, globalMesh.translation.y, 5.0f));  // Translate Z by 5.0f
+                const glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(globalMesh.scale.x, globalMesh.scale.y, globalMesh.scale.z));
+                const glm::mat4 transformMatrix =  translationMatrix * rotationMatrix * scaleMatrix;
+                const glm::vec4 transformedVert = transformMatrix * glmVert;
+
+                return vect3_t(transformedVert.x, transformedVert.y, transformedVert.z);
             });
 
         auto isRenderTriangle{true};
