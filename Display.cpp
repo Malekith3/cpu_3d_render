@@ -8,6 +8,7 @@
 namespace
 {
     float fovFactor = 600.0f;
+    constexpr float EPSILON = std::numeric_limits<float>::epsilon(); // Machine epsilon for float precision
 }
 namespace Render
 {
@@ -52,7 +53,7 @@ void drawPixel(ColorBufferArray& colorBuffer, int posX, int posY, uint32_t color
     }
 }
 
-void drawRect(ColorBufferArray& colorBuffer,
+void drawTriangle(ColorBufferArray& colorBuffer,
               const Point& point1, const Point& point2, const Point& point3,
               size_t color, LineRasterAlgo algoType)
 {
@@ -163,31 +164,118 @@ void drawLine(ColorBufferArray& colorBuffer, const Point& startPoint, const Poin
 
 }
 
-
-void drawFlatUpTriangle(ColorBufferArray& colorBuffer, triangle_t& triangle, size_t color)
+///////////////////////////////////////////////////////////////////////////////
+// Draw a filled a triangle with a flat bottom
+///////////////////////////////////////////////////////////////////////////////
+//
+//        (x0,y0)
+//          / \
+//         /   \
+//        /     \
+//       /       \
+//      /         \
+//  (x1,y1)------(x2,y2)
+//
+///////////////////////////////////////////////////////////////////////////////
+void drawFlatBottomTriangle(ColorBufferArray& colorBuffer, triangle_t& triangle, size_t color)
 {
     auto [point0, point1, point2] = triangle._points;
-    float invSlop1 = (point1.x - point0.x) / (point1.y - point0.y);
-    float invSlop2 = (point2.x - point0.x) / (point2.y - point0.y);
+    const float  MAX_WIDTH = std::abs(point2.x - point1.x);
 
-    float xStart = point0.x;
-    float xEnd = point0.x;
+    float dy1 = point1.y - point0.y;
+    float dy2 = point2.y - point0.y;
 
-    for (float y = point0.y; y <= point2.y; y++)
+    if (std::abs(dy1) < EPSILON || std::abs(dy2) < EPSILON)
+        return;
+
+    float invSlop1 = (point1.x - point0.x) / dy1;
+    float invSlop2 = (point2.x - point0.x) / dy2;
+
+    float xStart = std::round(point0.x);
+    float xEnd = std::round(point0.x);
+
+    for (int y = static_cast<int>(point0.y); y <= static_cast<int>(point2.y); y++)  // Ensure proper loop termination
     {
-        drawLine(colorBuffer,{xStart,y}, {xEnd,y},LineRasterAlgo::DDA,color);
-        xStart+= invSlop1;
-        xEnd+=invSlop2;
-    }
+        drawLine(colorBuffer, {static_cast<int>(xStart), y}, {static_cast<int>(xEnd), y}, LineRasterAlgo::BRESENHAM, color);
+        xStart += invSlop1;
+        xEnd += invSlop2;
 
+
+        if (std::abs(xStart - xEnd) > MAX_WIDTH)
+        {
+            xStart = point1.x;
+            xEnd   = point2.x;
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Draw a filled a triangle with a flat top
+///////////////////////////////////////////////////////////////////////////////
+//
+//  (x0,y0)------(x1,y1)
+//      \         /
+//       \       /
+//        \     /
+//         \   /
+//          \ /
+//        (x2,y2)
+//
+///////////////////////////////////////////////////////////////////////////////
+void drawFlatTopTriangle(ColorBufferArray& colorBuffer, triangle_t& triangle, size_t color)
+{
+    auto [point0, point1, point2] = triangle._points;
+    const float  MAX_WIDTH = std::abs(point1.x - point0.x);
+
+    float dy1 = point2.y - point0.y;
+    float dy2 = point2.y - point1.y;
+
+    if (std::abs(dy1) < EPSILON || std::abs(dy2) < EPSILON)
+        return;
+
+    float invSlop1 = (point2.x - point0.x) / dy1;
+    float invSlop2 = (point2.x - point1.x) / dy2;
+
+    float xStart = std::round(point2.x);
+    float xEnd = std::round(point2.x);
+
+    for (int y = static_cast<int>(point2.y); y >= static_cast<int>(point0.y); y--)
+    {
+        drawLine(colorBuffer, {static_cast<int>(xStart), y}, {static_cast<int>(xEnd), y}, LineRasterAlgo::BRESENHAM, color);
+        xStart -= invSlop1;
+        xEnd -= invSlop2;
+
+        if (std::abs(xStart - xEnd) > MAX_WIDTH)
+        {
+            xStart = point0.x;
+            xEnd   = point1.x;
+        }
+    }
 }
 
 void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const triangle_t& triangle, const size_t color)
 {
     auto triangleSorted{triangle.sortByHeight()};
+
+    if (std::abs(triangleSorted._points[1].y - triangleSorted._points[2].y) < EPSILON)
+    {
+        drawFlatBottomTriangle(colorBuffer, {triangleSorted}, color);
+        return;
+    }
+
+    if (std::abs(triangleSorted._points[1].y - triangleSorted._points[0].y) < EPSILON)
+    {
+        drawFlatBottomTriangle(colorBuffer, {triangleSorted}, color);
+        return;
+    }
+
     auto midPointOfTriangle {triangleSorted.getMidPoint()};
+
     triangle_t upTriangle{triangleSorted._points[0], triangleSorted._points[1], midPointOfTriangle};
-    drawFlatUpTriangle(colorBuffer, upTriangle, color);
+    triangle_t bottomTriangle{triangleSorted._points[1], midPointOfTriangle, triangleSorted._points[2]};
+
+    drawFlatBottomTriangle(colorBuffer, upTriangle, color);
+    drawFlatTopTriangle(colorBuffer,bottomTriangle,color);
 
 }
 

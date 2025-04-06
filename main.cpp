@@ -9,6 +9,7 @@
 #include "Display.h"
 #include "Vectors.h"
 #include "Mesh.h"
+#include "Colors.h"
 
 namespace
 {
@@ -22,6 +23,17 @@ namespace
         B,
         C
     };
+
+    enum class RenderingStates : uint8_t
+    {
+        WIREFRAME_WITH_VERTICES = 1U,  // Displays wireframe with small red dots at each triangle vertex
+        WIREFRAME_ONLY = 2U,          // Displays only the wireframe lines
+        FILLED_TRIANGLES = 3U,        // Displays filled triangles with a solid color
+        FILLED_TRIANGLES_WITH_WIREFRAME = 4U,  // Displays both filled triangles and wireframe lines
+    };
+
+    bool isBackFaceCullingEnabled{true};
+    RenderingStates renderingState{RenderingStates::WIREFRAME_ONLY};
 
 }
 
@@ -54,6 +66,42 @@ int InitWindow(SDL_Renderer*& renderer, SDL_Window*& window)
 
 }
 
+void processKeyInput(const SDL_Keycode keycode, bool& isQuitEvent)
+{
+    switch (keycode)
+    {
+        case SDLK_1:
+            //Pressing “1” displays the wireframe and a small red dot for each triangle vertex
+            renderingState = RenderingStates::WIREFRAME_WITH_VERTICES;
+            break;
+        case SDLK_2:
+            //Pressing “2” displays only the wireframe lines
+            renderingState = RenderingStates::WIREFRAME_ONLY;
+            break;
+        case SDLK_3:
+            //Pressing “3” displays filled triangles with a solid color
+            renderingState = RenderingStates::FILLED_TRIANGLES;
+            break;
+        case SDLK_4:
+            //Pressing “4” displays both filled triangles and wireframe lines
+            renderingState = RenderingStates::FILLED_TRIANGLES_WITH_WIREFRAME;
+            break;
+        case SDLK_c:
+            //Pressing “c” we should enable back-face culling
+            isBackFaceCullingEnabled = true;
+            break;
+        case SDLK_d:
+            //Pressing “d” we should disable the back-face cullin
+            isBackFaceCullingEnabled = false;
+            break;
+        case SDLK_ESCAPE:
+            isQuitEvent = true;
+        default:
+            break;
+    }
+
+}
+
 void processInput(bool& isQuitEvent)
 {
     SDL_Event e;
@@ -62,14 +110,15 @@ void processInput(bool& isQuitEvent)
     {
         switch (e.type)
         {
-        case SDL_QUIT:
-            isQuitEvent = true;
-            break;
-        case SDL_KEYDOWN:
-            isQuitEvent = (getKeySymbol(e) == SDLK_ESCAPE);
-            break;
-        default:
-            break;
+            case SDL_QUIT:
+                isQuitEvent = true;
+                break;
+
+            case SDL_KEYDOWN:
+                processKeyInput(getKeySymbol(e), isQuitEvent);
+                break;
+            default:
+                break;
         }
     }
 }
@@ -115,20 +164,27 @@ void update()
                 return transformedVert;
             });
 
-        //Culling
-        auto vectorAB = transformedVertices[static_cast<size_t>(VertexPoint::B)] -
-                                    transformedVertices[static_cast<size_t>(VertexPoint::A)];
-        auto vectorAC =  transformedVertices[static_cast<size_t>(VertexPoint::C)] -
-                                     transformedVertices[static_cast<size_t>(VertexPoint::A)];
-        auto cameraVector =     cameraPosition -
-                                            transformedVertices[static_cast<size_t>(VertexPoint::A)];
-        auto faceNormal = vectorAB.cross(vectorAC).normalize();
-        auto projectionNormal = faceNormal.dot(cameraVector);
+        auto isRenderTriangle{true};
+        if (isBackFaceCullingEnabled)
+        {
+            //Culling
+            auto vectorAB = transformedVertices[static_cast<size_t>(VertexPoint::B)] -
+                                        transformedVertices[static_cast<size_t>(VertexPoint::A)];
+            auto vectorAC =  transformedVertices[static_cast<size_t>(VertexPoint::C)] -
+                                         transformedVertices[static_cast<size_t>(VertexPoint::A)];
+            auto cameraVector =     cameraPosition -
+                                                transformedVertices[static_cast<size_t>(VertexPoint::A)];
+            auto faceNormal = vectorAB.cross(vectorAC).normalize();
+            auto projectionNormal = faceNormal.dot(cameraVector);
+            isRenderTriangle = projectionNormal >= -std::numeric_limits<float>::epsilon();
+        }
 
-        if (projectionNormal >= -std::numeric_limits<float>::epsilon())
+
+        if (isRenderTriangle)
         {
             //Project
             triangle_t projectedTriangle;
+            projectedTriangle.setAvgDepth((transformedVertices[0].z + transformedVertices[1].z + transformedVertices[2].z) / 3.0f);
             std::ranges::transform(transformedVertices, projectedTriangle._points.begin(), [](auto& vert)
                 {
                     auto projectedPoint = Render::project(vert);
@@ -140,6 +196,11 @@ void update()
 
     }
 
+    std::ranges::sort(trianglesToRender, [](auto& firstTriangle, auto& secondTriangle)
+    {
+        return firstTriangle.getAvgDepth() > secondTriangle.getAvgDepth();
+    });
+
 }
 
 void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& colorBuffer, SDL_Texture*& colorBufferTexture)
@@ -150,20 +211,42 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
       SDL_RenderCopy(renderer, colorBufferTexture, nullptr, nullptr);
     };
 
-    // for (auto& [points] : trianglesToRender)
-    // {
-    //     std::ranges::for_each(points,[&colorBuffer](const auto& point)
-    //     {
-    //         Render::drawRect(colorBuffer,point.x,point.y,3,3,0xFFFFFF00);
-    //     });
-    //
-    //     auto [point1, point2, point3] = points;
-    //     Render::drawRect(colorBuffer,{point1.x, point1.y}, {point2.x,point2.y}, {point3.x,point3.y});
-    // }
-    triangle_t triangle{50,50,50 ,400, 300 ,450};
-    auto [point1, point2, point3] = triangle._points;
-    Render::drawRect(colorBuffer,{point1.x, point1.y}, {point2.x,point2.y}, {point3.x,point3.y});
-    Render::drawFilledTriangleFlatBottom(colorBuffer, triangle, 0xFFFFFF00);
+    for (auto& triangle : trianglesToRender)
+    {
+        auto points{triangle._points};
+        auto [point0,point1,point2] = points;
+
+        if (renderingState == RenderingStates::WIREFRAME_WITH_VERTICES )
+        {
+            // For each point in the triangle, draw a small red dot (wireframe with vertices)
+            std::ranges::for_each(points, [&colorBuffer](const auto& point)
+            {
+                Render::drawRect(colorBuffer, point.x, point.y, 3, 3, toColorValue(Colors::RED));
+            });
+        }
+
+        if (
+               renderingState == RenderingStates::FILLED_TRIANGLES
+            || renderingState == RenderingStates::FILLED_TRIANGLES_WITH_WIREFRAME )
+        {
+            // Draw a filled triangle with a flat bottom in green color (solid color rendering)
+            Render::drawFilledTriangleFlatBottom(colorBuffer, {points}, toColorValue(Colors::GREEN));
+
+            // Draw the triangle's outline (wireframe) in green color
+            Render::drawTriangle(colorBuffer, {point0.x, point0.y}, {point1.x, point1.y}, {point2.x, point2.y}, toColorValue(Colors::GREEN));
+        }
+
+        if (
+               renderingState == RenderingStates::WIREFRAME_ONLY
+            || renderingState == RenderingStates::WIREFRAME_WITH_VERTICES
+            || renderingState == RenderingStates::FILLED_TRIANGLES_WITH_WIREFRAME )
+        {
+            // Draw the triangle's outline (wireframe) in blue color
+            Render::drawTriangle(colorBuffer, {point0.x, point0.y}, {point1.x, point1.y}, {point2.x, point2.y}, toColorValue(Colors::BLUE));
+        }
+
+
+    }
     renderColorBuffer();
     colorBuffer.fill(0xFF000000);
     SDL_RenderPresent(renderer);
@@ -178,7 +261,7 @@ void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& col
 
     std::vector<vect3_t<float>> loadedVertex;
     std::vector<face_t> loadedFaces;
-    LoadOBJFileSimplified("./assets/f22.obj", loadedVertex, loadedFaces);
+    LoadOBJFileSimplified("./assets/cube.obj", loadedVertex, loadedFaces);
     std::ranges::copy(loadedVertex, std::back_inserter(globalMesh.vertices));
     std::ranges::copy(loadedFaces, std::back_inserter(globalMesh.faces));
 }
