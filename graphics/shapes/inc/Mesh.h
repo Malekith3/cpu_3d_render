@@ -5,7 +5,7 @@
 
 #include "Triangle.h"
 #include "filesystem"
-#include "Vectors.h"
+#include "Vectors.hpp"
 
 
 constexpr size_t N_CUBE_MESH_VERT = 8u;

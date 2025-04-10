@@ -1,11 +1,11 @@
-#include "Mesh.h"
-
 #include <filesystem>
 #include <iostream>
 #include <format>
 #include <fstream>
 #include <regex>
 #include <ranges>
+
+#include "Triangle.h"
 
 
 //I tried to do fancy way with monads ... srsly why still cpp can beat c way to do with string...

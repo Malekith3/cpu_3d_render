@@ -2,7 +2,7 @@
 #define TRIANGLE_H
 #include <array>
 
-#include "Vectors.h"
+#include "Vectors.hpp"
 
 struct face_t
 {

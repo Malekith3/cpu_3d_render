@@ -2,14 +2,21 @@
 
 #include <algorithm>
 #include <cmath>
+#include <CommonDefines.h>
 #include <span>
+#include <Vectors.hpp>
 #include <bits/ranges_algobase.h>
+
+
+#include "glm/mat4x4.hpp"
 
 namespace
 {
     float fovFactor = 600.0f;
     constexpr float EPSILON = std::numeric_limits<float>::epsilon(); // Machine epsilon for float precision
 }
+
+
 namespace Render
 {
 
@@ -63,7 +70,7 @@ void drawTriangle(ColorBufferArray& colorBuffer,
 
 }
 
-vect2_t<float> project(vect3_t<float>& point)
+vect2_t<float> projectNonMatrix(vect3_t<float>& point)
 {
     return fovFactor * vect2_t<float>{point.x / point.z ,point.y / point.z};
 }
@@ -278,6 +285,4 @@ void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const triangle_
     drawFlatTopTriangle(colorBuffer,bottomTriangle,color);
 
 }
-
-
 }

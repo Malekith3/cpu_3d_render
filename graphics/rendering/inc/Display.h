@@ -2,9 +2,10 @@
 #define DISPLAY_H
 #include <cstdint>
 
+#include "Vectors.hpp"
 #include "CommonDefines.h"
 #include "Triangle.h"
-#include "Vectors.h"
+#include "glm/mat4x4.hpp"
 
 namespace Render
 {
@@ -31,7 +32,7 @@ void drawTriangle(ColorBufferArray& colorBuffer, const Point& point1, const Poin
               algoType = LineRasterAlgo::DDA);
 void drawLine(ColorBufferArray& colorBuffer, const Point& startPoint, const Point& endPoint,
               LineRasterAlgo algoType = LineRasterAlgo::DDA, uint32_t  color = 0xFFFFFF00);
-vect2_t<float> project(vect3_t<float>& point);
+vect2_t<float> projectNonMatrix(vect3_t<float>& point);
 void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const triangle_t& triangle, size_t color = 0xFFFFFF00);
 }
 

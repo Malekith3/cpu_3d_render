@@ -1,7 +1,7 @@
 #ifndef GLM_ADAPTER_H
 #define GLM_ADAPTER_H
 
-#include "vectors.h"
+#include "Vectors.hpp"
 #include <glm/glm.hpp>
 
 // --- vect2_t <-> glm::vec2 ---
@@ -30,4 +30,9 @@ vect3_t<T> from_glm(const glm::vec<3, T, glm::defaultp>& v)
     return vect3_t<T>{v.x, v.y, v.z};
 }
 
+template <typename T>
+vect3_t<T> fromGLMVect3(const glm::vec<4, T, glm::defaultp>& v)
+{
+    return vect3_t<T>{v.x, v.y, v.z};
+}
 #endif // GLM_ADAPTER_H

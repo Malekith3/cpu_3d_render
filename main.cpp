@@ -5,13 +5,14 @@
 #include <algorithm>
 #include <format>
 
-#include "CommonDefines.h"
-#include "Display.h"
-#include "Vectors.h"
-#include "Mesh.h"
-#include "Colors.h"
+#include "common/inc/CommonDefines.h"
+#include "graphics/rendering/inc/Display.h"
+#include "common/inc/Vectors.hpp"
+#include "graphics/shapes/inc/Mesh.h"
+#include "common/inc/Colors.h"
 #include <glm/glm.hpp>
-#include "GlmAdapter.h"
+#include "utils/inc/GlmAdapter.h"
+#include "utils/inc/ProjectionMat.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -20,6 +21,7 @@ namespace
     vect3_t<float> cameraPosition{0.0f,0.0f,0.0f};
     std::vector<triangle_t> trianglesToRender;
     Mesh globalMesh;
+    glm::mat4x4 projectionMat{0};
 
     enum class VertexPoint : uint8_t
     {
@@ -146,7 +148,7 @@ void update()
     globalMesh.rotation.y += +0.5;
     globalMesh.rotation.z += +0.5;
 
-    globalMesh.translation.x += 0.01;
+    // globalMesh.translation.x += 0.01;
     // globalMesh.scale.x += 0.001;
 
     static auto offsetIndex = [](const int index){return index - 1;};
@@ -200,8 +202,14 @@ void update()
             projectedTriangle.setAvgDepth((transformedVertices[0].z + transformedVertices[1].z + transformedVertices[2].z) / 3.0f);
             std::ranges::transform(transformedVertices, projectedTriangle._points.begin(), [](auto& vert)
                 {
-                    auto projectedPoint = Render::project(vert);
-                    return projectedPoint + vect2_t<float>(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+                    auto res = Utils::projectWithMat(projectionMat,{vert.x,vert.y,vert.z,1});
+
+                    res.x *= WINDOW_WIDTH / 2.0f;
+                    res.y *= WINDOW_HEIGHT / 2.0f;
+
+                    res.x += WINDOW_WIDTH / 2.0f;
+                    res.y += WINDOW_HEIGHT / 2.0f;
+                    return vect2_t<float>{res.x,res.y};
                 });
 
             trianglesToRender.push_back(projectedTriangle);
@@ -271,6 +279,13 @@ void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& col
     std::ranges::fill(colorBuffer, ZERO_VALUE_COLOR_BUFFER);
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
                                            WINDOW_WIDTH, WINDOW_HEIGHT);
+
+    constexpr auto fov = glm::radians(60.0f);
+    constexpr float aspect =  WINDOW_WIDTH/ static_cast<float>(WINDOW_HEIGHT);
+    constexpr float zNear = 0.1f;
+    constexpr float zFar = 100.0f;
+
+    projectionMat = Utils::makePerspectiveMat4(fov, aspect, zNear, zFar);
 
     std::vector<vect3_t<float>> loadedVertex;
     std::vector<face_t> loadedFaces;
