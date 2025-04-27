@@ -5,7 +5,6 @@
 #include <CommonDefines.h>
 #include <span>
 #include <Vectors.hpp>
-#include <bits/ranges_algobase.h>
 
 
 #include "glm/mat4x4.hpp"

@@ -24,21 +24,22 @@ glm::mat4x4 makePerspectiveMat4(const float fov, const float aspect, const float
     **/
 
     const float invTangFov = 1.0f / std::tan(fov / 2.0f);
-    const float zFarNearRatio = zFar/(zFar - zNear);
+    const float zFarNearRatio = zFar / (zFar - zNear);
 
     glm::mat4x4 perspectiveMat{0};
     perspectiveMat[0][0] = invTangFov / aspect;
     perspectiveMat[1][1] = invTangFov;
     perspectiveMat[2][2] = zFarNearRatio;
-    perspectiveMat[2][3] =  (-zNear * zFar)/(zFar - zNear);
-    perspectiveMat[3][2] = 1.0f;
+    perspectiveMat[2][3] = 1.0f;
+    perspectiveMat[3][2] = (-zNear * zFar)/(zFar - zNear);
+
 
     return perspectiveMat;
 }
 
 glm::vec4 projectWithMat(const glm::mat4x4& projectMatrix, const glm::vec4& vec)
 {
-    glm::vec4 projectedVect =  vec * projectMatrix ;
+    glm::vec4 projectedVect =   projectMatrix * vec ;
     if (projectedVect.w != 0)
     {
         projectedVect /= projectedVect.w;
