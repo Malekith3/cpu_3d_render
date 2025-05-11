@@ -10,6 +10,7 @@
 #include "common/inc/Vectors.hpp"
 #include "graphics/shapes/inc/Mesh.h"
 #include "common/inc/Colors.h"
+#include "graphics/light/inc/light.h"
 #include <glm/glm.hpp>
 #include "utils/inc/GlmAdapter.h"
 #include "utils/inc/ProjectionMat.h"
@@ -152,7 +153,7 @@ void update()
     // globalMesh.scale.x += 0.001;
 
     static auto offsetIndex = [](const int index){return index - 1;};
-    for (const auto& [aFaceVert, bFaceVert, cFaceVert] : globalMesh.faces)
+    for (const auto& [aFaceVert, bFaceVert, cFaceVert, meshColor] : globalMesh.faces)
     {
         std::array<vect3_t<float>,3> faceVert{{
                 globalMesh.vertices[offsetIndex(aFaceVert)],
@@ -180,25 +181,30 @@ void update()
             });
 
         auto isRenderTriangle{true};
+
+        //Culling
+        auto vectorAB = transformedVertices[static_cast<size_t>(VertexPoint::B)] -
+                                    transformedVertices[static_cast<size_t>(VertexPoint::A)];
+        auto vectorAC =  transformedVertices[static_cast<size_t>(VertexPoint::C)] -
+                                     transformedVertices[static_cast<size_t>(VertexPoint::A)];
+        auto cameraVector =     cameraPosition -
+                                            transformedVertices[static_cast<size_t>(VertexPoint::A)];
+        auto faceNormal = vectorAB.cross(vectorAC).normalize();
+        auto projectionNormal = faceNormal.dot(cameraVector);
+
         if (isBackFaceCullingEnabled)
         {
-            //Culling
-            auto vectorAB = transformedVertices[static_cast<size_t>(VertexPoint::B)] -
-                                        transformedVertices[static_cast<size_t>(VertexPoint::A)];
-            auto vectorAC =  transformedVertices[static_cast<size_t>(VertexPoint::C)] -
-                                         transformedVertices[static_cast<size_t>(VertexPoint::A)];
-            auto cameraVector =     cameraPosition -
-                                                transformedVertices[static_cast<size_t>(VertexPoint::A)];
-            auto faceNormal = vectorAB.cross(vectorAC).normalize();
-            auto projectionNormal = faceNormal.dot(cameraVector);
             isRenderTriangle = projectionNormal >= -std::numeric_limits<float>::epsilon();
         }
 
 
         if (isRenderTriangle)
         {
-            //Project
             triangle_t projectedTriangle;
+            const auto& globalLight {getGlobalLight()};
+            const float lightIntensity = -faceNormal.dot(globalLight._direction);
+            projectedTriangle._color = applyIntensityToColor(meshColor, lightIntensity);
+
             projectedTriangle.setAvgDepth((transformedVertices[0].z + transformedVertices[1].z + transformedVertices[2].z) / 3.0f);
             std::ranges::transform(transformedVertices, projectedTriangle._points.begin(), [](auto& vert)
                 {
@@ -211,9 +217,10 @@ void update()
                     res.y += WINDOW_HEIGHT / 2.0f;
                     return vect2_t<float>{res.x,res.y};
                 });
-
             trianglesToRender.push_back(projectedTriangle);
         }
+
+
 
     }
 
@@ -237,6 +244,7 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
         auto points{triangle._points};
         auto [point0,point1,point2] = points;
 
+
         if (renderingState == RenderingStates::WIREFRAME_WITH_VERTICES )
         {
             // For each point in the triangle, draw a small red dot (wireframe with vertices)
@@ -248,13 +256,12 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
 
         if (
                renderingState == RenderingStates::FILLED_TRIANGLES
-            || renderingState == RenderingStates::FILLED_TRIANGLES_WITH_WIREFRAME )
-        {
+            || renderingState == RenderingStates::FILLED_TRIANGLES_WITH_WIREFRAME ) {
             // Draw a filled triangle with a flat bottom in green color (solid color rendering)
-            Render::drawFilledTriangleFlatBottom(colorBuffer, {points}, toColorValue(Colors::GREEN));
+            Render::drawFilledTriangleFlatBottom(colorBuffer, triangle_t(points), triangle._color);
 
             // Draw the triangle's outline (wireframe) in green color
-            Render::drawTriangle(colorBuffer, {point0.x, point0.y}, {point1.x, point1.y}, {point2.x, point2.y}, toColorValue(Colors::GREEN));
+            Render::drawTriangle(colorBuffer, {point0.x, point0.y}, {point1.x, point1.y}, {point2.x, point2.y}, triangle._color);
         }
 
         if (

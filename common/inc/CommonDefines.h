@@ -1,6 +1,7 @@
 #ifndef COMMONDEFINES_H
 #define COMMONDEFINES_H
 #include <array>
+#include <vector>
 #include <cstddef>
 #include <cstdint>
 

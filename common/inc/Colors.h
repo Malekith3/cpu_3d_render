@@ -2,6 +2,8 @@
 #define COLORS_H
 #include <cstdint>
 
+
+
 enum class Colors : uint32_t
 {
     TRANSPARENT = 0x00000000U,  // ARGB = (0, 0, 0, 0)
@@ -26,5 +28,26 @@ enum class Colors : uint32_t
 constexpr uint32_t toColorValue(Colors color)
 {
     return static_cast<uint32_t>(color);
+}
+
+constexpr uint32_t applyIntensityToColor(const uint32_t originalColor, float percentageIntensity)
+{
+    percentageIntensity = std::clamp(percentageIntensity, 0.0f, 1.0f);
+
+    constexpr uint32_t ALPHA_SHIFT = 24;
+    constexpr uint32_t RED_SHIFT = 16;
+    constexpr uint32_t GREEN_SHIFT = 8;
+    constexpr uint32_t COLOR_MASK = 0xFF;
+
+    uint32_t a = (originalColor >> ALPHA_SHIFT) & COLOR_MASK;
+    uint32_t r = (originalColor >> RED_SHIFT) & COLOR_MASK;
+    uint32_t g = (originalColor >> GREEN_SHIFT) & COLOR_MASK;
+    uint32_t b = originalColor & COLOR_MASK;
+
+    r = static_cast<uint32_t>(r * percentageIntensity);
+    g = static_cast<uint32_t>(g * percentageIntensity);
+    b = static_cast<uint32_t>(b * percentageIntensity);
+
+    return {(a << 24) | (r << 16) | (g << 8) | b};
 }
 #endif //COLORS_H

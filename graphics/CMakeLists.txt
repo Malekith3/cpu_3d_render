@@ -2,7 +2,8 @@
 file(GLOB_RECURSE  GRAPHICS_SRC "*.cpp")
 file(GLOB_RECURSE  GRAPHICS_HDR "*.h")
 
-add_library(graphics ${GRAPHICS_SRC} ${GRAPHICS_HDR})
+add_library(graphics ${GRAPHICS_SRC} ${GRAPHICS_HDR}
+        light/inc/light.h)
 # Force standard and RTTI across all compilation units
 target_compile_features(graphics PUBLIC cxx_std_23)
 target_compile_options(graphics PRIVATE -frtti -fexceptions)
