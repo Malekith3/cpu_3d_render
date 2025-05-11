@@ -145,9 +145,9 @@ void update()
     }
 
     prevFrameTime = SDL_GetTicks64();
-    globalMesh.rotation.x += +0.5;
-    globalMesh.rotation.y += +0.5;
-    globalMesh.rotation.z += +0.5;
+    globalMesh.rotation.x += +0.3;
+    globalMesh.rotation.y += +0.3;
+    globalMesh.rotation.z += +0.2;
 
     // globalMesh.translation.x += 0.01;
     // globalMesh.scale.x += 0.001;
@@ -212,6 +212,9 @@ void update()
 
                     res.x *= WINDOW_WIDTH / 2.0f;
                     res.y *= WINDOW_HEIGHT / 2.0f;
+
+                    //Flip the Y axis because the model is loaded with y up
+                    res.y *= -1.0f;
 
                     res.x += WINDOW_WIDTH / 2.0f;
                     res.y += WINDOW_HEIGHT / 2.0f;
@@ -296,7 +299,7 @@ void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& col
 
     std::vector<vect3_t<float>> loadedVertex;
     std::vector<face_t> loadedFaces;
-    LoadOBJFileSimplified("./assets/cube.obj", loadedVertex, loadedFaces);
+    LoadOBJFileSimplified("./assets/f22.obj", loadedVertex, loadedFaces);
     std::ranges::copy(loadedVertex, std::back_inserter(globalMesh.vertices));
     std::ranges::copy(loadedFaces, std::back_inserter(globalMesh.faces));
 }
