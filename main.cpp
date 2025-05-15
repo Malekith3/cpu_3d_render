@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <format>
+#include <ranges>
 
 #include "common/inc/CommonDefines.h"
 #include "graphics/rendering/inc/Display.h"
@@ -20,8 +21,9 @@
 namespace
 {
     vect3_t<float> cameraPosition{0.0f,0.0f,0.0f};
-    std::vector<triangle_t> trianglesToRender;
+    std::vector<Triangle> trianglesToRender;
     Mesh globalMesh;
+    std::vector<uint32_t> textureMesh;
     glm::mat4x4 projectionMat{0};
 
     enum class VertexPoint : uint8_t
@@ -33,10 +35,12 @@ namespace
 
     enum class RenderingStates : uint8_t
     {
-        WIREFRAME_WITH_VERTICES = 1U,  // Displays wireframe with small red dots at each triangle vertex
-        WIREFRAME_ONLY = 2U,          // Displays only the wireframe lines
-        FILLED_TRIANGLES = 3U,        // Displays filled triangles with a solid color
-        FILLED_TRIANGLES_WITH_WIREFRAME = 4U,  // Displays both filled triangles and wireframe lines
+        WIREFRAME_WITH_VERTICES = 1U,           // Displays a wireframe with small red dots at each triangle vertex
+        WIREFRAME_ONLY,                        // Displays only the wireframe lines
+        FILLED_TRIANGLES,                     // Displays filled triangles with a solid color
+        FILLED_TRIANGLES_WITH_WIREFRAME,     // Displays both filled triangles and wireframe lines
+        TEXTURED_TRIANGLES,                 // Displays textured triangles
+        TEXTURED_TRIANGLES_WITH_WIREFRAME, // Displays both textured triangles and wireframe lines
     };
 
     bool isBackFaceCullingEnabled{true};
@@ -92,6 +96,12 @@ void processKeyInput(const SDL_Keycode keycode, bool& isQuitEvent)
         case SDLK_4:
             //Pressing “4” displays both filled triangles and wireframe lines
             renderingState = RenderingStates::FILLED_TRIANGLES_WITH_WIREFRAME;
+            break;
+        case SDLK_5:
+            renderingState = RenderingStates::TEXTURED_TRIANGLES;
+            break;
+        case SDLK_6:
+            renderingState = RenderingStates::TEXTURED_TRIANGLES_WITH_WIREFRAME;
             break;
         case SDLK_c:
             //Pressing “c” we should enable back-face culling
@@ -153,7 +163,7 @@ void update()
     // globalMesh.scale.x += 0.001;
 
     static auto offsetIndex = [](const int index){return index - 1;};
-    for (const auto& [aFaceVert, bFaceVert, cFaceVert, meshColor] : globalMesh.faces)
+    for (const auto& [aFaceVert, bFaceVert, cFaceVert, meshColor, a_uv,b_uv,c_uv] : globalMesh.faces)
     {
         std::array<vect3_t<float>,3> faceVert{{
                 globalMesh.vertices[offsetIndex(aFaceVert)],
@@ -200,11 +210,11 @@ void update()
 
         if (isRenderTriangle)
         {
-            triangle_t projectedTriangle;
+            Triangle projectedTriangle;
             const auto& globalLight {getGlobalLight()};
             const float lightIntensity = -faceNormal.dot(globalLight._direction);
             projectedTriangle._color = applyIntensityToColor(meshColor, lightIntensity);
-
+            projectedTriangle.textCoord = std::array<Texture2d,3>{{{a_uv},{b_uv},{c_uv}}};
             projectedTriangle.setAvgDepth((transformedVertices[0].z + transformedVertices[1].z + transformedVertices[2].z) / 3.0f);
             std::ranges::transform(transformedVertices, projectedTriangle._points.begin(), [](auto& vert)
                 {
@@ -248,7 +258,7 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
         auto [point0,point1,point2] = points;
 
 
-        if (renderingState == RenderingStates::WIREFRAME_WITH_VERTICES )
+        if ( renderingState == RenderingStates::WIREFRAME_WITH_VERTICES )
         {
             // For each point in the triangle, draw a small red dot (wireframe with vertices)
             std::ranges::for_each(points, [&colorBuffer](const auto& point)
@@ -261,7 +271,7 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
                renderingState == RenderingStates::FILLED_TRIANGLES
             || renderingState == RenderingStates::FILLED_TRIANGLES_WITH_WIREFRAME ) {
             // Draw a filled triangle with a flat bottom in green color (solid color rendering)
-            Render::drawFilledTriangleFlatBottom(colorBuffer, triangle_t(points), triangle._color);
+            Render::drawFilledTriangleFlatBottom(colorBuffer, Triangle(points), triangle._color);
 
             // Draw the triangle's outline (wireframe) in green color
             Render::drawTriangle(colorBuffer, {point0.x, point0.y}, {point1.x, point1.y}, {point2.x, point2.y}, triangle._color);
@@ -270,10 +280,18 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
         if (
                renderingState == RenderingStates::WIREFRAME_ONLY
             || renderingState == RenderingStates::WIREFRAME_WITH_VERTICES
-            || renderingState == RenderingStates::FILLED_TRIANGLES_WITH_WIREFRAME )
+            || renderingState == RenderingStates::FILLED_TRIANGLES_WITH_WIREFRAME
+            || renderingState == RenderingStates::TEXTURED_TRIANGLES_WITH_WIREFRAME)
         {
             // Draw the triangle's outline (wireframe) in blue color
             Render::drawTriangle(colorBuffer, {point0.x, point0.y}, {point1.x, point1.y}, {point2.x, point2.y}, toColorValue(Colors::BLUE));
+        }
+
+        if (
+            renderingState == RenderingStates::TEXTURED_TRIANGLES
+            || renderingState == RenderingStates::TEXTURED_TRIANGLES_WITH_WIREFRAME)
+        {
+          // TODO add draw texture
         }
 
 
@@ -298,8 +316,25 @@ void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& col
     projectionMat = Utils::makePerspectiveMat4(fov, aspect, zNear, zFar);
 
     std::vector<vect3_t<float>> loadedVertex;
-    std::vector<face_t> loadedFaces;
-    LoadOBJFileSimplified("./assets/f22.obj", loadedVertex, loadedFaces);
+    std::vector<Face> loadedFaces;
+    // LoadOBJFileSimplified("./assets/f22.obj", loadedVertex, loadedFaces);
+    std::ranges::copy(cubeMeshFaces, std::back_inserter(loadedFaces));
+    std::ranges::copy(cubeMeshVert, std::back_inserter(loadedVertex));
+
+    // //good old unsafe c way :D
+    // textureMesh.assign(
+    // reinterpret_cast<const uint32_t*>(REDBRICK_TEXTURE.data()),
+    // reinterpret_cast<const uint32_t*>(REDBRICK_TEXTURE.data() + REDBRICK_TEXTURE.size()));
+
+    //Fancy modern cpp way with chunks
+    textureMesh.reserve(REDBRICK_TEXTURE.size() / 4);
+    for (const auto chunk : REDBRICK_TEXTURE | std::views::chunk(4))
+    {
+        uint32_t textureColor = chunk[3] << 24 | chunk[0] << 16 | chunk[1] << 8 | chunk[2];
+        textureMesh.emplace_back(textureColor);
+    }
+
+
     std::ranges::copy(loadedVertex, std::back_inserter(globalMesh.vertices));
     std::ranges::copy(loadedFaces, std::back_inserter(globalMesh.faces));
 }

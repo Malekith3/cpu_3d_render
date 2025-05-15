@@ -2,10 +2,10 @@
 
 #include <algorithm>
 
-triangle_t triangle_t::sortByHeight() const
+Triangle Triangle::sortByHeight() const
 {
 
-    triangle_t sortedTriangle = *this;
+    Triangle sortedTriangle = *this;
     std::sort(sortedTriangle._points.begin(), sortedTriangle._points.end(),
               [](const auto& point1, const auto& point2) {
                   return point1.y < point2.y; // Sort in descending order by y
@@ -14,7 +14,7 @@ triangle_t triangle_t::sortByHeight() const
 
 }
 
-vect2_t<float> triangle_t::getMidPoint() const
+vect2_t<float> Triangle::getMidPoint() const
 {
 
     // The formula for calculating the x-coordinate of the midpoint of the base of the triangle

@@ -3,22 +3,27 @@
 #include <array>
 
 #include "Vectors.hpp"
+#include "Textures.h"
 #include "glm/fwd.hpp"
 
-struct face_t
+struct Face
 {
     int a{};
     int b{};
     int c{};
-    uint32_t _color{0xFFFFFFFF};
+    uint32_t color{0xFFFFFFFF};
+    Texture2d a_uv{};
+    Texture2d b_uv{};
+    Texture2d c_uv{};
 };
 
-struct triangle_t
+struct Triangle
 {
     std::array<vect2_t<float>,3> _points;
     uint32_t _color{0xFFFFFFFF};
+    std::array<Texture2d,3> textCoord{};
 
-    [[nodiscard]] triangle_t sortByHeight() const;
+    [[nodiscard]] Triangle sortByHeight() const;
 
     [[nodiscard]] vect2_t<float> getMidPoint() const;
 
@@ -26,9 +31,9 @@ struct triangle_t
 
     void setAvgDepth(const float avgDepth) { _avgDepth = avgDepth; }
 
-    triangle_t(const vect2_t<float> point0, const vect2_t<float> point1, const vect2_t<float> point2):_points({{point0,point1,point2}}){}
-    explicit triangle_t(const std::array<vect2_t<float>, 3>& points) : _points(points){}
-    triangle_t() = default;
+    Triangle(const vect2_t<float> point0, const vect2_t<float> point1, const vect2_t<float> point2):_points({{point0,point1,point2}}){}
+    explicit Triangle(const std::array<vect2_t<float>, 3>& points) : _points(points){}
+    Triangle() = default;
 
 
 

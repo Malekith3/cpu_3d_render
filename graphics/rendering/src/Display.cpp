@@ -33,7 +33,7 @@ void drawGrid(ColorBufferArray& colorBuffer, uint32_t gridColor, size_t gridSpac
     }
 }
 
-void drawRect(ColorBufferArray& colorBuffer, int posX, int posY, size_t width, size_t height, uint32_t color)
+void drawRect(ColorBufferArray& colorBuffer, const int posX, const int posY, const size_t width, const size_t height, const uint32_t color)
 {
     size_t numberOfRow = posY;
     while (numberOfRow < posY + height)
@@ -45,15 +45,15 @@ void drawRect(ColorBufferArray& colorBuffer, int posX, int posY, size_t width, s
     }
 }
 
-void drawPixel(ColorBufferArray& colorBuffer, int posX, int posY, uint32_t color)
+void drawPixel(ColorBufferArray& colorBuffer, const int posX, const int posY, const uint32_t color)
 {
     if (posX == 0 || posY == 0)
     {
         return;
     }
 
-    size_t index{WINDOW_WIDTH*posY + posX};
-    if (index < colorBuffer.size())
+    if (const size_t index{WINDOW_WIDTH*posY + posX};
+        index < colorBuffer.size())
     {
         colorBuffer[index] = color;
     }
@@ -69,12 +69,12 @@ void drawTriangle(ColorBufferArray& colorBuffer,
 
 }
 
-vect2_t<float> projectNonMatrix(vect3_t<float>& point)
+vect2_t<float> projectNonMatrix(const vect3_t<float>& point)
 {
     return fovFactor * vect2_t<float>{point.x / point.z ,point.y / point.z};
 }
 
-void drawLine(ColorBufferArray& colorBuffer, const Point& startPoint, const Point& endPoint, LineRasterAlgo algoType, uint32_t color)
+void drawLine(ColorBufferArray& colorBuffer, const Point& startPoint, const Point& endPoint, const LineRasterAlgo algoType, uint32_t color)
 {
     auto drawWithDDAAlgo = [&]()
     {
@@ -118,7 +118,7 @@ void drawLine(ColorBufferArray& colorBuffer, const Point& startPoint, const Poin
 
             while (newRasterPoint.x != endPoint.x)
             {
-                // reduce error, while taking into account the corner case of error == 0
+                // reduce error while taking into account the corner case of error == 0
                 if ((error > 0) || (!error && (ix > 0)))
                 {
                     error -= deltaX;
@@ -138,7 +138,7 @@ void drawLine(ColorBufferArray& colorBuffer, const Point& startPoint, const Poin
 
             while (newRasterPoint.y != endPoint.y)
             {
-                // reduce error, while taking into account the corner case of error == 0
+                // reduce error while taking into account the corner case of error == 0
                 if ((error > 0) || (!error && (iy > 0)))
                 {
                     error -= deltaY;
@@ -183,7 +183,7 @@ void drawLine(ColorBufferArray& colorBuffer, const Point& startPoint, const Poin
 //  (x1,y1)------(x2,y2)
 //
 ///////////////////////////////////////////////////////////////////////////////
-void drawFlatBottomTriangle(ColorBufferArray& colorBuffer, triangle_t& triangle, size_t color)
+void drawFlatBottomTriangle(ColorBufferArray& colorBuffer, Triangle& triangle, const size_t color)
 {
     auto [point0, point1, point2] = triangle._points;
     const float  MAX_WIDTH = std::abs(point2.x - point1.x);
@@ -228,7 +228,7 @@ void drawFlatBottomTriangle(ColorBufferArray& colorBuffer, triangle_t& triangle,
 //        (x2,y2)
 //
 ///////////////////////////////////////////////////////////////////////////////
-void drawFlatTopTriangle(ColorBufferArray& colorBuffer, triangle_t& triangle, size_t color)
+void drawFlatTopTriangle(ColorBufferArray& colorBuffer, Triangle& triangle, const size_t color)
 {
     auto [point0, point1, point2] = triangle._points;
     const float  MAX_WIDTH = std::abs(point1.x - point0.x);
@@ -259,7 +259,7 @@ void drawFlatTopTriangle(ColorBufferArray& colorBuffer, triangle_t& triangle, si
     }
 }
 
-void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const triangle_t& triangle, const size_t color)
+void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const Triangle& triangle, const size_t color)
 {
     auto triangleSorted{triangle.sortByHeight()};
 
@@ -277,11 +277,16 @@ void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const triangle_
 
     auto midPointOfTriangle {triangleSorted.getMidPoint()};
 
-    triangle_t upTriangle{triangleSorted._points[0], triangleSorted._points[1], midPointOfTriangle};
-    triangle_t bottomTriangle{triangleSorted._points[1], midPointOfTriangle, triangleSorted._points[2]};
+    Triangle upTriangle{triangleSorted._points[0], triangleSorted._points[1], midPointOfTriangle};
+    Triangle bottomTriangle{triangleSorted._points[1], midPointOfTriangle, triangleSorted._points[2]};
 
     drawFlatBottomTriangle(colorBuffer, upTriangle, color);
     drawFlatTopTriangle(colorBuffer,bottomTriangle,color);
+
+}
+
+void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle)
+{
 
 }
 }
