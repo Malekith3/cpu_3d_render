@@ -1,6 +1,7 @@
 #ifndef TRIANGLE_H
 #define TRIANGLE_H
 #include <array>
+#include <unordered_map>
 
 #include "Vectors.hpp"
 #include "Textures.h"
@@ -39,6 +40,25 @@ struct Triangle
 
 private:
     float _avgDepth{0.0f};
+};
+
+struct Vertex2D
+{
+    vect2_t<float> pos{};
+    Texture2d uv{};
+};
+
+struct TriangleTextured
+{
+    std::array<Vertex2D,3> _pointsWithUV{};
+
+    TriangleTextured() = default;
+
+    explicit TriangleTextured(const Triangle &triangle);
+
+    [[nodiscard]] TriangleTextured sortByHeight() const;
+
+    [[nodiscard]] Vertex2D getMidPoint() const;
 };
 
 #endif //TRIANGLE_H

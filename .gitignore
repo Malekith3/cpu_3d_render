@@ -5,3 +5,6 @@ cmake-build-*/
 external/
 
 .idea
+
+.clang-format
+.clang-tidy

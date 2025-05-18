@@ -47,6 +47,8 @@ struct vect2_t
       return {x * cosA - y * sinA, x * sinA + y * cosA};
   }
 
+  T cross(const vect2_t &other) const { return x * other.y - y * other.x; }
+
   T magnitude() const
   {
     return std::sqrt(x * x + y * y);

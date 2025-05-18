@@ -1,15 +1,16 @@
 #include "Triangle.h"
 
 #include <algorithm>
+#include <ranges>
 
 Triangle Triangle::sortByHeight() const
 {
 
     Triangle sortedTriangle = *this;
-    std::sort(sortedTriangle._points.begin(), sortedTriangle._points.end(),
-              [](const auto& point1, const auto& point2) {
-                  return point1.y < point2.y; // Sort in descending order by y
-              });
+    std::ranges::sort(sortedTriangle._points,
+                      [](const auto& point1, const auto& point2) {
+                          return point1.y < point2.y; // Sort in descending order by y
+                      });
     return sortedTriangle;
 
 }
@@ -50,8 +51,32 @@ vect2_t<float> Triangle::getMidPoint() const
     // Mx = x0 + ((x2 - x0) * (y1 - y0)) / (y2 - y0)
 
     auto [point0, point1, point2] = _points;
-    auto midPointX = point0.x + ((point1.y- point0.y)*(point2.x - point0.x) / (point2.y - point0.y) );
+    const auto midPointX = point0.x + ((point1.y- point0.y)*(point2.x - point0.x) / (point2.y - point0.y) );
     return {midPointX,point1.y};
+}
+
+TriangleTextured::TriangleTextured(const Triangle &triangle)
+{
+    for (auto [index,point]: std::views::enumerate(triangle._points))
+    {
+        _pointsWithUV[index] = {point, triangle.textCoord[index]};
+    }
+}
+
+TriangleTextured TriangleTextured::sortByHeight() const
+{
+    TriangleTextured sortedTriangle = *this;
+    std::ranges::sort(sortedTriangle._pointsWithUV,[](auto& point1, auto& point2)
+                      {return point1.pos.y < point2.pos.y;} // Sort in descending order by y
+    );
+    return sortedTriangle;
+}
+
+Vertex2D TriangleTextured::getMidPoint() const
+{
+    auto [point0, point1, point2] = _pointsWithUV;
+    const auto midPointX = point0.pos.x + ((point1.pos.y- point0.pos.y)*(point2.pos.x - point0.pos.x) / (point2.pos.y - point0.pos.y) );
+    return {midPointX,point1.pos.y, {}};
 }
 
 

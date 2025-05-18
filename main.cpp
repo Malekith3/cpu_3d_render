@@ -321,18 +321,18 @@ void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& col
     std::ranges::copy(cubeMeshFaces, std::back_inserter(loadedFaces));
     std::ranges::copy(cubeMeshVert, std::back_inserter(loadedVertex));
 
-    // //good old unsafe c way :D
-    // textureMesh.assign(
-    // reinterpret_cast<const uint32_t*>(REDBRICK_TEXTURE.data()),
-    // reinterpret_cast<const uint32_t*>(REDBRICK_TEXTURE.data() + REDBRICK_TEXTURE.size()));
+    //good old unsafe c way :D
+    textureMesh.assign(
+    reinterpret_cast<const uint32_t*>(REDBRICK_TEXTURE.data()),
+    reinterpret_cast<const uint32_t*>(REDBRICK_TEXTURE.data() + REDBRICK_TEXTURE.size()));
 
-    //Fancy modern cpp way with chunks
-    textureMesh.reserve(REDBRICK_TEXTURE.size() / 4);
-    for (const auto chunk : REDBRICK_TEXTURE | std::views::chunk(4))
-    {
-        uint32_t textureColor = chunk[3] << 24 | chunk[0] << 16 | chunk[1] << 8 | chunk[2];
-        textureMesh.emplace_back(textureColor);
-    }
+    // //Fancy modern cpp way with chunks
+    // textureMesh.reserve(REDBRICK_TEXTURE.size() / 4);
+    // for (const auto chunk : REDBRICK_TEXTURE | std::views::chunk(4))
+    // {
+    //     uint32_t textureColor = chunk[3] << 24 | chunk[0] << 16 | chunk[1] << 8 | chunk[2];
+    //     textureMesh.emplace_back(textureColor);
+    // }
 
 
     std::ranges::copy(loadedVertex, std::back_inserter(globalMesh.vertices));

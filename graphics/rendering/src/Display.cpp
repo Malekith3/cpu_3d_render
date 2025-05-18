@@ -5,6 +5,7 @@
 #include <CommonDefines.h>
 #include <span>
 #include <Vectors.hpp>
+#include <Math3D.h>
 
 
 #include "glm/mat4x4.hpp"
@@ -271,7 +272,7 @@ void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const Triangle&
 
     if (std::abs(triangleSorted._points[1].y - triangleSorted._points[0].y) < EPSILON)
     {
-        drawFlatBottomTriangle(colorBuffer, {triangleSorted}, color);
+        drawFlatTopTriangle(colorBuffer, {triangleSorted}, color);
         return;
     }
 
@@ -285,8 +286,63 @@ void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const Triangle&
 
 }
 
-void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle)
+///////////////////////////////////////////////////////////////////////////////
+// Draw a filled a triangle with a flat top with a texture
+///////////////////////////////////////////////////////////////////////////////
+//
+//  (x0,y0)------(x1,y1)
+//      \         /
+//       \       /
+//        \     /
+//         \   /
+//          \ /
+//        (x2,y2)
+//
+///////////////////////////////////////////////////////////////////////////////
+void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, const Texture2d& texture,  const TriangleTextured& triangle)
+{
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Draw a filled a triangle with a flat bottom with texture
+///////////////////////////////////////////////////////////////////////////////
+//
+//        (x0,y0)
+//          / \
+//         /   \
+//        /     \
+//       /       \
+//      /         \
+//  (x1,y1)------(x2,y2)
+//
+///////////////////////////////////////////////////////////////////////////////
+void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, const Texture2d& texture,  const TriangleTextured& triangle)
 {
 
 }
+
+
+void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle, const Texture2d &texture)
+{
+    const TriangleTextured triangleTextured{triangle};
+    const auto sortedTexturedTriangles{triangleTextured.sortByHeight()};
+
+    if (std::abs(sortedTexturedTriangles._pointsWithUV[1].pos.y - sortedTexturedTriangles._pointsWithUV[2].pos.y) < EPSILON)
+    {
+        drawFlatBottomTriangleTextured(colorBuffer, texture, sortedTexturedTriangles);
+        return;
+    }
+
+    if (std::abs(sortedTexturedTriangles._pointsWithUV[1].pos.y - sortedTexturedTriangles._pointsWithUV[0].pos.y) < EPSILON)
+    {
+        drawFlatTopTriangleTextured(colorBuffer, texture, sortedTexturedTriangles);
+        return;
+    }
+
+    const auto midPointOfTriangle {sortedTexturedTriangles.getMidPoint()};
+
+}
+
+
 }
