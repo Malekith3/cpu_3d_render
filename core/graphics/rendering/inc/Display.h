@@ -2,9 +2,13 @@
 #define DISPLAY_H
 #include <cstdint>
 
-#include "Vectors.hpp"
-#include "CommonDefines.h"
-#include "Triangle.h"
+#include "graphics/textures/inc/Textures.h"
+
+#include "common/inc/CommonDefines.h"
+#include "common/inc/Vectors.hpp"
+
+
+struct Triangle;
 
 namespace Render
 {

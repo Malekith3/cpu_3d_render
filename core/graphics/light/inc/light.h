@@ -1,6 +1,7 @@
 #ifndef LIGHT_H
 #define LIGHT_H
-#include <Vectors.hpp>
+
+#include "common/inc/Vectors.hpp"
 
 struct  Light
 {

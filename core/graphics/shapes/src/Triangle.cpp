@@ -1,7 +1,11 @@
-#include "Triangle.h"
+#include "graphics/shapes/inc/Triangle.h"
+
+#include "common/inc/Vectors.hpp"
 
 #include <algorithm>
 #include <ranges>
+
+
 
 Triangle Triangle::sortByHeight() const
 {

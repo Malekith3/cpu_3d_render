@@ -1,12 +1,14 @@
-#include "Display.h"
+
+#include "graphics/rendering/inc/Display.h"
+#include "graphics/shapes/inc/Triangle.h"
+
+
+#include "common/inc/CommonDefines.h"
+#include "common/inc/Vectors.hpp"
 
 #include <algorithm>
 #include <cmath>
-#include <CommonDefines.h>
 #include <span>
-#include <Vectors.hpp>
-#include <Math3D.h>
-
 
 #include "glm/mat4x4.hpp"
 

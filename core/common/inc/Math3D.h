@@ -2,7 +2,7 @@
 #ifndef MATHCALC_H
 #define MATHCALC_H
 
-#include <Vectors.hpp>
+#include "common/inc/Vectors.hpp"
 
 namespace Math3D
 {

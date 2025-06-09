@@ -1,7 +1,8 @@
 #ifndef GLM_ADAPTER_H
 #define GLM_ADAPTER_H
 
-#include "Vectors.hpp"
+#include "common/inc/Vectors.hpp"
+
 #include <glm/glm.hpp>
 
 // --- vect2_t <-> glm::vec2 ---

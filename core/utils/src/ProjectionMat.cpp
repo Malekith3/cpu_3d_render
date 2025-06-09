@@ -1,4 +1,9 @@
-#include "ProjectionMat.h"
+
+#include "glm/mat4x4.hpp"
+#include "glm/vec4.hpp"
+
+#include "utils/inc/ProjectionMat.h"
+
 namespace Utils
 {
 glm::mat4x4 makePerspectiveMat4(const float fov, const float aspect, const float zNear, const float zFar)

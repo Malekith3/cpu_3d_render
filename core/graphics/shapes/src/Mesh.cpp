@@ -1,12 +1,11 @@
+#include "graphics/shapes/inc/Triangle.h"
+
 #include <filesystem>
-#include <iostream>
 #include <format>
 #include <fstream>
-#include <regex>
+#include <iostream>
 #include <ranges>
-
-#include "Triangle.h"
-
+#include <regex>
 
 //I tried to do fancy way with monads ... srsly why still cpp can beat c way to do with string...
 void LoadOBJFile(const std::filesystem::path& pathToOBJ, std::vector<vect3_t<float>>& vertexArray, std::vector<Face>& facesArray)

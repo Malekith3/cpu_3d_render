@@ -1,11 +1,13 @@
 #ifndef MESH_H
 #define MESH_H
-#include <array>
-#include <vector>
 
-#include "Triangle.h"
-#include "filesystem"
-#include "Vectors.hpp"
+#include "graphics/shapes/inc/Triangle.h"
+
+#include "common/inc/Vectors.hpp"
+
+#include <array>
+#include <filesystem>
+#include <vector>
 
 
 constexpr size_t N_CUBE_MESH_VERT = 8u;

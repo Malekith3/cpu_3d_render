@@ -1,4 +1,4 @@
-#include "Math3D.h"
+#include <common/inc/Math3D.h>
 
 vect3_t<float> Math3D::BarycentricWeights(const vect2_t<float>& a, const vect2_t<float>& b, const vect2_t<float>& c, const vect2_t<float>& p)
 {

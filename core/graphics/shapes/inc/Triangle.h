@@ -1,11 +1,11 @@
 #ifndef TRIANGLE_H
 #define TRIANGLE_H
-#include <array>
-#include <unordered_map>
 
-#include "Vectors.hpp"
-#include "Textures.h"
-#include "glm/fwd.hpp"
+#include "graphics/textures/inc/Textures.h"
+
+#include "common/inc/Vectors.hpp"
+
+#include <array>
 
 struct Face
 {

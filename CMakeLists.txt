@@ -43,19 +43,20 @@ set("SDL2_BUILD_PATH" "${CMAKE_BINARY_DIR}/external/SDL2")
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/SDL2)
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/glm)
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/graphics)
-add_subdirectory(${CMAKE_SOURCE_DIR}/common)
-add_subdirectory(${CMAKE_SOURCE_DIR}/utils)
+include_directories(${CMAKE_SOURCE_DIR}/core)
+
+#Find all cpp and h files in root src folder
+file(GLOB_RECURSE CORE_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/core/*.cpp)
 
 # Add your application source files
-add_executable(${PROJECT_NAME} main.cpp)
+add_executable(${PROJECT_NAME} main.cpp ${CORE_SRC_FILES})
 
 # Ensure the correct include directories are used
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_SOURCE_DIR}/include)
 # Include directories for header files
 
 # Link SDL2 libraries in the correct order
-target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2main SDL2::SDL2 glm graphics utils)
+target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2main SDL2::SDL2 glm)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
