@@ -36,10 +36,13 @@ Features and rendering stages will be added as I progress through the lessons.
 
 All you need is **CMake ≥ 3.15** and a GNU compiler that supports **C++23**.
 
-> ⚠️ **Disclaimer**:  
-> This project currently relies on internal headers from GCC’s `libstdc++` (specifically `<bits/ranges_algobase.h>`), which are **not part of the C++ standard**.  
-> As a result, **it will not compile** with **MSVC** or **Clang/libc++** at this point.  
-> This is a temporary situation — the goal is to **refactor** the code to use only standard-compliant headers and make the project **compiler-agnostic**.
+> ⚠️ **Disclaimer (Windows Edition)**
+>
+> Building on Windows? Good luck.  
+> Tested with MinGW-w64 and MSYS2 using Ninja — it works, but expect the usual cross-platform pain.  
+> I’ve embedded some MinGW runtime libs statically when building for Windows to dodge the worst of it.  
+> Use `g++` from MinGW-w64 or MSYS2 (`mingw-w64-x86_64-gcc`). Pray accordingly.
+
 ### Steps to Build:
 
 1. **Clone the Repository**:
@@ -50,12 +53,20 @@ All you need is **CMake ≥ 3.15** and a GNU compiler that supports **C++23**.
    ### Windows
     ````bash
     cmake -B build -G "MinGW Makefiles"
-    cmake --build build
+     cmake --build build -j 10
+    ````
+   ````bash
+   cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+   cmake --build build -j 10
     ````
    ### Linux
     ````bash
    cmake -B build
-   cmake --build build
+   cmake --build build -j 10
+    ````
+      ````bash
+   cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+   cmake --build build -j 10
     ````
 3. **Run**
    ````bash

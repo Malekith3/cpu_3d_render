@@ -1,19 +1,18 @@
-
-#include <SDL2/SDL.h>
-#include <iostream>
-#include <vector>
 #include <algorithm>
 #include <format>
-#include <ranges>
+#include <iostream>
+#include <vector>
 
-#include "common/inc/CommonDefines.h"
-#include "graphics/rendering/inc/Display.h"
-#include "common/inc/Vectors.hpp"
-#include "graphics/shapes/inc/Mesh.h"
-#include "common/inc/Colors.h"
-#include "graphics/light/inc/light.h"
 #include <glm/glm.hpp>
-#include "utils/inc/GlmAdapter.h"
+#include <SDL2/SDL.h>
+
+#include "common/inc/Colors.h"
+#include "common/inc/CommonDefines.h"
+#include "common/inc/Vectors.hpp"
+
+#include "graphics/light/inc/light.h"
+#include "graphics/rendering/inc/Display.h"
+#include "graphics/shapes/inc/Mesh.h"
 #include "utils/inc/ProjectionMat.h"
 
 #include <glm/gtc/matrix_transform.hpp>
