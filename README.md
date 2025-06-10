@@ -9,8 +9,9 @@ All rendering is done manually, step by step, to gain a deep understanding of ho
 ## Goals
 
 - Learn how a 3D rendering pipeline works by implementing it manually.
-- Reinforce graphics fundamentals like transformation matrices, clipping, rasterization, and depth buffering.
+- Learn graphics fundamentals in depth, such as transformation matrices, clipping, rasterization, depth buffering, lighting, and texturing
 - Gain experience with **modern C++ (C++23)** while porting from the original ANSI C course.
+- Keep the project cross-platform for Windows and Linux to also become familiar with the pain this decision brings.
 
 ---
 
