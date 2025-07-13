@@ -1,7 +1,8 @@
 #ifndef COLORS_H
 #define COLORS_H
-#include <cstdint>
 
+#include <algorithm>
+#include <cstdint>
 
 
 enum class Colors : uint32_t

@@ -155,8 +155,8 @@ void update()
 
     prevFrameTime = SDL_GetTicks64();
     globalMesh.rotation.x += +0.3;
-    globalMesh.rotation.y += +0.3;
-    globalMesh.rotation.z += +0.2;
+    globalMesh.rotation.y += +0.0;
+    globalMesh.rotation.z += +0.0;
 
     // globalMesh.translation.x += 0.01;
     // globalMesh.scale.x += 0.001;
@@ -278,9 +278,7 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
 
         if (
                renderingState == RenderingStates::WIREFRAME_ONLY
-            || renderingState == RenderingStates::WIREFRAME_WITH_VERTICES
-            || renderingState == RenderingStates::FILLED_TRIANGLES_WITH_WIREFRAME
-            || renderingState == RenderingStates::TEXTURED_TRIANGLES_WITH_WIREFRAME)
+            || renderingState == RenderingStates::WIREFRAME_WITH_VERTICES )
         {
             // Draw the triangle's outline (wireframe) in blue color
             Render::drawTriangle(colorBuffer, {point0.x, point0.y}, {point1.x, point1.y}, {point2.x, point2.y}, toColorValue(Colors::BLUE));
@@ -290,7 +288,7 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
             renderingState == RenderingStates::TEXTURED_TRIANGLES
             || renderingState == RenderingStates::TEXTURED_TRIANGLES_WITH_WIREFRAME)
         {
-          // TODO add draw texture
+            Render::drawTexturedTriangle(colorBuffer, triangle, {});
         }
 
 

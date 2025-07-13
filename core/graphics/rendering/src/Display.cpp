@@ -3,6 +3,7 @@
 #include "graphics/shapes/inc/Triangle.h"
 
 
+#include "common/inc/Colors.h"
 #include "common/inc/CommonDefines.h"
 #include "common/inc/Vectors.hpp"
 
@@ -15,7 +16,7 @@
 namespace
 {
     float fovFactor = 600.0f;
-    constexpr float EPSILON = std::numeric_limits<float>::epsilon(); // Machine epsilon for float precision
+    constexpr float EPSILON = 1e-4f; // Machine epsilon for float precision
 }
 
 
@@ -301,9 +302,50 @@ void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const Triangle&
 //        (x2,y2)
 //
 ///////////////////////////////////////////////////////////////////////////////
-void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, const Texture2d& texture,  const TriangleTextured& triangle)
+void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, const Texture2d& texture, const TriangleTextured& triangle)
 {
+    auto [vertex0, vertex1, vertex2] = triangle._pointsWithUV;
+    const auto point0 = vertex0.pos; // top-left (flat top)
+    const auto point1 = vertex1.pos; // top-right (flat top)
+    const auto point2 = vertex2.pos; // bottom
+
+    const float area = (point1.x - point0.x) * (point2.y - point0.y) -
+                       (point2.x - point0.x) * (point1.y - point0.y);
+    if (std::abs(area) < EPSILON)
+        return; // Degenerate triangle
+
+    float dyLeft  = point2.y - point0.y;
+    float dyRight = point2.y - point1.y;
+
+    if (std::abs(dyLeft) <= EPSILON || std::abs(dyRight) <= EPSILON)
+        return; // Prevent division by zero
+
+    float invSlopeLeft  = (point2.x - point0.x) / dyLeft;
+    float invSlopeRight = (point2.x - point1.x) / dyRight;
+
+    int startY = static_cast<int>(std::ceil(point0.y));  // Top edge
+    int endY   = static_cast<int>(std::ceil(point2.y));  // Bottom point
+
+    for (int y = startY; y < endY; y++)  // scan from top to bottom
+    {
+        float xStartF = point0.x + (y - point0.y) * invSlopeLeft;
+        float xEndF   = point1.x + (y - point1.y) * invSlopeRight;
+
+        int xStart = static_cast<int>(std::ceil(xStartF));
+        int xEnd   = static_cast<int>(std::ceil(xEndF));
+
+        if (xStart > xEnd)
+        {
+            std::swap(xStart, xEnd);
+        }
+
+        for (int x = xStart; x < xEnd; x++)
+        {
+            drawPixel(colorBuffer, x, y, toColorValue(Colors::RED));
+        }
+    }
 }
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -319,10 +361,52 @@ void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, const Texture2d&
 //  (x1,y1)------(x2,y2)
 //
 ///////////////////////////////////////////////////////////////////////////////
-void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, const Texture2d& texture,  const TriangleTextured& triangle)
+void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, const Texture2d& texture, const TriangleTextured& triangle)
 {
+    auto [vertex0, vertex1, vertex2] = triangle._pointsWithUV;
+    const auto point0 = vertex0.pos; // top
+    const auto point1 = vertex1.pos; // bottom-left
+    const auto point2 = vertex2.pos; // bottom-right
 
+    const float area = (point1.x - point0.x) * (point2.y - point0.y) -
+                       (point2.x - point0.x) * (point1.y - point0.y);
+
+    if (std::abs(area) < EPSILON)
+        return; // Degenerate triangle
+
+    float dy1 = point1.y - point0.y;
+    float dy2 = point2.y - point0.y;
+
+    if (std::abs(dy1) <= EPSILON || std::abs(dy2) <= EPSILON)
+        return;
+
+    float invSlop1 = (point1.x - point0.x) / dy1;
+    float invSlop2 = (point2.x - point0.x) / dy2;
+
+
+    int startY = static_cast<int>(std::ceil(point0.y));
+    int endY   = static_cast<int>(std::ceil(point1.y));
+
+    for (int y = startY; y < endY; y++)
+    {
+        const float scanCurx1 = point0.x + (y - point0.y) * invSlop1;
+        const float scanCurx2 = point0.x + (y - point0.y) * invSlop2;
+
+        int xStart = static_cast<int>(std::ceil(scanCurx1));
+        int xEnd   = static_cast<int>(std::ceil(scanCurx2));
+
+        if (xStart > xEnd)
+        {
+            std::swap(xStart, xEnd);
+        }
+
+        for (int x = xStart; x < xEnd; x++)
+        {
+            drawPixel(colorBuffer, x, y, toColorValue(Colors::RED));
+        }
+    }
 }
+
 
 
 void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle, const Texture2d &texture)
@@ -333,16 +417,13 @@ void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangl
     if (std::abs(sortedTexturedTriangles._pointsWithUV[1].pos.y - sortedTexturedTriangles._pointsWithUV[2].pos.y) < EPSILON)
     {
         drawFlatBottomTriangleTextured(colorBuffer, texture, sortedTexturedTriangles);
-        return;
     }
 
     if (std::abs(sortedTexturedTriangles._pointsWithUV[1].pos.y - sortedTexturedTriangles._pointsWithUV[0].pos.y) < EPSILON)
     {
         drawFlatTopTriangleTextured(colorBuffer, texture, sortedTexturedTriangles);
-        return;
     }
 
-    const auto midPointOfTriangle {sortedTexturedTriangles.getMidPoint()};
 
 }
 
