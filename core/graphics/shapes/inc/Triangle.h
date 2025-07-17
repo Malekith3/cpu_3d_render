@@ -59,6 +59,8 @@ struct TriangleTextured
     [[nodiscard]] TriangleTextured sortByHeight() const;
 
     [[nodiscard]] Vertex2D getMidPoint() const;
+    [[nodiscard]] std::array<vect2_t<float>,3> getPoints() const;
+    [[nodiscard]] std::array<Texture2d,3> getUVs() const;
 };
 
 #endif //TRIANGLE_H

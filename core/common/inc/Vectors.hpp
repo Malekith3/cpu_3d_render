@@ -154,6 +154,12 @@ struct vect3_t
   {
     return x * x + y * y + z * z;
   }
+
+  T sum() const
+  {
+    return x + y + z;
+  }
+
 };
 
 template <typename T>

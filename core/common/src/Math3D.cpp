@@ -10,7 +10,7 @@ vect3_t<float> Math3D::BarycentricWeights(const vect2_t<float>& a, const vect2_t
 
     const float areaParallelogramABC{ab.cross(ac)};
 
-    if (areaParallelogramABC == 0.0f)
+    if (std::abs(areaParallelogramABC) < std::numeric_limits<float>::epsilon())
     {
         return {0.0f, 0.0f, 0.0f};
     }

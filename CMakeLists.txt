@@ -34,12 +34,37 @@ if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/glm")
     endif()
 endif()
 
+# Clone Doctest if not present
+set(DOCTEST_DIR ${CMAKE_SOURCE_DIR}/external/doctest)
+
+# Download doctest.h only if it doesn't exist
+if(NOT EXISTS "${DOCTEST_DIR}/doctest.h")
+    file(DOWNLOAD
+            https://raw.githubusercontent.com/doctest/doctest/master/doctest/doctest.h
+            ${DOCTEST_DIR}/doctest.h
+            EXPECTED_MD5 ""
+            SHOW_PROGRESS
+            STATUS download_status
+    )
+    list(GET download_status 0 status_code)
+    if(NOT status_code EQUAL 0)
+        message(FATAL_ERROR "Failed to download doctest.h")
+    endif()
+endif()
+
 # Add subdirectories
 add_subdirectory(external/SDL2)
 add_subdirectory(external/glm)
 
 # Source files
 file(GLOB_RECURSE CORE_SRC_FILES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/core/*.cpp)
+
+# Filter out files inside any "test" directory
+foreach(file IN LISTS CORE_SRC_FILES)
+    if(file MATCHES "/test/")
+        list(REMOVE_ITEM CORE_SRC_FILES ${file})
+    endif()
+endforeach()
 
 # Executable
 add_executable(${PROJECT_NAME} main.cpp ${CORE_SRC_FILES})
@@ -55,4 +80,22 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_FILE:SDL2::SDL2>"
         "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+)
+
+
+### ─────────────────────────────────────────────────────────────
+### Tests Executables
+### ─────────────────────────────────────────────────────────────
+
+add_executable(Math3DTest
+        ${CMAKE_SOURCE_DIR}/core/common/test/Math3DTest.cpp
+        ${CMAKE_SOURCE_DIR}/core/common/src/Math3D.cpp
+)
+
+target_include_directories(Math3DTest PRIVATE
+        ${CMAKE_SOURCE_DIR}/core
+)
+
+target_include_directories(Math3DTest SYSTEM PRIVATE
+        ${CMAKE_SOURCE_DIR}/external
 )

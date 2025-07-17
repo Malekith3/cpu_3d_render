@@ -154,7 +154,7 @@ void update()
     }
 
     prevFrameTime = SDL_GetTicks64();
-    globalMesh.rotation.x += +0.3;
+    globalMesh.rotation.x += +0.0;
     globalMesh.rotation.y += +0.0;
     globalMesh.rotation.z += +0.0;
 
@@ -257,7 +257,7 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
         auto [point0,point1,point2] = points;
 
 
-        if ( renderingState == RenderingStates::WIREFRAME_WITH_VERTICES )
+        if (   renderingState == RenderingStates::WIREFRAME_WITH_VERTICES)
         {
             // For each point in the triangle, draw a small red dot (wireframe with vertices)
             std::ranges::for_each(points, [&colorBuffer](const auto& point)
@@ -277,18 +277,19 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
         }
 
         if (
-               renderingState == RenderingStates::WIREFRAME_ONLY
-            || renderingState == RenderingStates::WIREFRAME_WITH_VERTICES )
-        {
-            // Draw the triangle's outline (wireframe) in blue color
-            Render::drawTriangle(colorBuffer, {point0.x, point0.y}, {point1.x, point1.y}, {point2.x, point2.y}, toColorValue(Colors::BLUE));
-        }
-
-        if (
             renderingState == RenderingStates::TEXTURED_TRIANGLES
             || renderingState == RenderingStates::TEXTURED_TRIANGLES_WITH_WIREFRAME)
         {
-            Render::drawTexturedTriangle(colorBuffer, triangle, {});
+            Render::drawTexturedTriangle(colorBuffer, triangle, textureMesh);
+        }
+
+        if (
+               renderingState == RenderingStates::WIREFRAME_ONLY
+            || renderingState == RenderingStates::WIREFRAME_WITH_VERTICES
+            || renderingState == RenderingStates::TEXTURED_TRIANGLES_WITH_WIREFRAME)
+        {
+            // Draw the triangle's outline (wireframe) in blue color
+            Render::drawTriangle(colorBuffer, {point0.x, point0.y}, {point1.x, point1.y}, {point2.x, point2.y}, toColorValue(Colors::WHITE));
         }
 
 

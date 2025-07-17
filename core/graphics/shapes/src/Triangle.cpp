@@ -70,9 +70,16 @@ TriangleTextured::TriangleTextured(const Triangle &triangle)
 TriangleTextured TriangleTextured::sortByHeight() const
 {
     TriangleTextured sortedTriangle = *this;
-    std::ranges::sort(sortedTriangle._pointsWithUV,[](auto& point1, auto& point2)
-                      {return point1.pos.y < point2.pos.y;} // Sort in descending order by y
-    );
+    std::ranges::sort(sortedTriangle._pointsWithUV, [](auto& p1, auto& p2) {
+        constexpr float EPSILON = std::numeric_limits<float>::epsilon();
+
+        // Sort descending by Y
+        if (std::abs(p1.pos.y - p2.pos.y) < EPSILON) {
+            // If Y equal, sort ascending by X
+            return p1.pos.x < p2.pos.x;
+        }
+        return p1.pos.y < p2.pos.y;  // descending Y
+    });
     return sortedTriangle;
 }
 
@@ -81,6 +88,16 @@ Vertex2D TriangleTextured::getMidPoint() const
     auto [point0, point1, point2] = _pointsWithUV;
     const auto midPointX = point0.pos.x + ((point1.pos.y- point0.pos.y)*(point2.pos.x - point0.pos.x) / (point2.pos.y - point0.pos.y) );
     return {midPointX,point1.pos.y, {}};
+}
+
+std::array<vect2_t<float>, 3> TriangleTextured::getPoints() const
+{
+    return {{_pointsWithUV[0].pos, _pointsWithUV[1].pos, _pointsWithUV[2].pos}};
+}
+
+std::array<Texture2d, 3> TriangleTextured::getUVs() const
+{
+    return {{_pointsWithUV[0].uv, _pointsWithUV[1].uv, _pointsWithUV[2].uv}};
 }
 
 

@@ -1,17 +1,18 @@
-
 #include "graphics/rendering/inc/Display.h"
 #include "graphics/shapes/inc/Triangle.h"
-
 
 #include "common/inc/Colors.h"
 #include "common/inc/CommonDefines.h"
 #include "common/inc/Vectors.hpp"
+#include "common/inc/Math3D.h"
 
 #include <algorithm>
 #include <cmath>
 #include <span>
 
 #include "glm/mat4x4.hpp"
+
+#define internal static
 
 namespace
 {
@@ -289,6 +290,26 @@ void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const Triangle&
 
 }
 
+internal void drawTexel(ColorBufferArray& colorBuffer,
+                        std::vector<uint32_t>& texture,
+                        const TriangleTextured& triangle,
+                        int xCoord,
+                        int yCoord)
+{
+        vect2_t<float> pointP{static_cast<float>(xCoord), static_cast<float>(yCoord)};
+        const auto& [pointA, pointB, pointC] = triangle.getPoints();
+        const auto& [pointAUV, pointBUV, pointCUV] = triangle.getUVs();
+        const auto& [alpha, beta, gama] = Math3D::BarycentricWeights(pointA, pointB, pointC, pointP);
+
+        float interpolatedU = pointAUV.u * alpha + pointBUV.u * beta + pointCUV.u * gama;
+        float interpolatedV = pointAUV.v * alpha + pointBUV.v * beta + pointCUV.v * gama;
+
+        int texelIndexX = static_cast<int>(std::clamp(abs(interpolatedU), 0.0f, 1.0f) * TEXTURE_WIDTH );
+        int texelIndexY = static_cast<int>(std::clamp(abs(interpolatedV), 0.0f, 1.0f) * TEXTURE_HEIGHT);
+
+        drawPixel(colorBuffer, xCoord, yCoord, texture[(TEXTURE_WIDTH * texelIndexY) + texelIndexX]);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Draw a filled a triangle with a flat top with a texture
 ///////////////////////////////////////////////////////////////////////////////
@@ -302,12 +323,18 @@ void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const Triangle&
 //        (x2,y2)
 //
 ///////////////////////////////////////////////////////////////////////////////
-void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, const Texture2d& texture, const TriangleTextured& triangle)
+void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, std::vector<uint32_t> &texture, TriangleTextured &triangle)
 {
-    auto [vertex0, vertex1, vertex2] = triangle._pointsWithUV;
-    const auto point0 = vertex0.pos; // top-left (flat top)
-    const auto point1 = vertex1.pos; // top-right (flat top)
-    const auto point2 = vertex2.pos; // bottom
+    auto& [vertex0, vertex1, vertex2] = triangle._pointsWithUV;
+
+    if (vertex0.pos.x > vertex1.pos.x)
+    {
+        std::swap(vertex0, vertex1);
+    }
+
+    auto point0 = vertex0.pos; // top-left (flat top)
+    auto point1 = vertex1.pos; // top-right (flat top)
+    auto point2 = vertex2.pos; // bottom
 
     const float area = (point1.x - point0.x) * (point2.y - point0.y) -
                        (point2.x - point0.x) * (point1.y - point0.y);
@@ -334,17 +361,13 @@ void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, const Texture2d&
         int xStart = static_cast<int>(std::ceil(xStartF));
         int xEnd   = static_cast<int>(std::ceil(xEndF));
 
-        if (xStart > xEnd)
-        {
-            std::swap(xStart, xEnd);
-        }
-
         for (int x = xStart; x < xEnd; x++)
         {
-            drawPixel(colorBuffer, x, y, toColorValue(Colors::RED));
+            drawTexel(colorBuffer, texture, triangle, x, y);
         }
     }
 }
+
 
 
 
@@ -361,9 +384,15 @@ void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, const Texture2d&
 //  (x1,y1)------(x2,y2)
 //
 ///////////////////////////////////////////////////////////////////////////////
-void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, const Texture2d& texture, const TriangleTextured& triangle)
+void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, std::vector<uint32_t> &texture, TriangleTextured &triangle)
 {
     auto [vertex0, vertex1, vertex2] = triangle._pointsWithUV;
+
+    if (vertex1.pos.x > vertex2.pos.x)
+    {
+        std::swap(vertex1, vertex2);
+    }
+
     const auto point0 = vertex0.pos; // top
     const auto point1 = vertex1.pos; // bottom-left
     const auto point2 = vertex2.pos; // bottom-right
@@ -380,6 +409,7 @@ void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, const Texture
     if (std::abs(dy1) <= EPSILON || std::abs(dy2) <= EPSILON)
         return;
 
+
     float invSlop1 = (point1.x - point0.x) / dy1;
     float invSlop2 = (point2.x - point0.x) / dy2;
 
@@ -395,24 +425,19 @@ void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, const Texture
         int xStart = static_cast<int>(std::ceil(scanCurx1));
         int xEnd   = static_cast<int>(std::ceil(scanCurx2));
 
-        if (xStart > xEnd)
-        {
-            std::swap(xStart, xEnd);
-        }
-
         for (int x = xStart; x < xEnd; x++)
         {
-            drawPixel(colorBuffer, x, y, toColorValue(Colors::RED));
+            drawTexel(colorBuffer, texture, triangle, x, y);
         }
     }
 }
 
 
 
-void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle, const Texture2d &texture)
+void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle, std::vector<uint32_t> &texture)
 {
     const TriangleTextured triangleTextured{triangle};
-    const auto sortedTexturedTriangles{triangleTextured.sortByHeight()};
+    auto sortedTexturedTriangles{triangleTextured.sortByHeight()};
 
     if (std::abs(sortedTexturedTriangles._pointsWithUV[1].pos.y - sortedTexturedTriangles._pointsWithUV[2].pos.y) < EPSILON)
     {
@@ -423,7 +448,6 @@ void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangl
     {
         drawFlatTopTriangleTextured(colorBuffer, texture, sortedTexturedTriangles);
     }
-
 
 }
 
