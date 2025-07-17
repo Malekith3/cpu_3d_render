@@ -166,3 +166,33 @@ TEST_CASE("Barycentric weights edge cases")
     }
 
 }
+
+TEST_CASE_FIXTURE(BarycentricTestFixture,"Barycentric weights with clockwise triangle (negative area)")
+{
+    vect2_t<float> b{276.0f, 155.0f};
+    vect2_t<float> c{523.0f, 155.0f};
+    vect2_t<float> a{264.0f, 50.0f};
+
+    // Pick a point roughly near center of the triangle
+    vect2_t<float> p{277.0f, 156.0f};
+
+    auto weights = Math3D::BarycentricWeights(a, b, c, p);
+
+    // Check that weights sum to ~1
+    CHECK(weights.x + weights.y + weights.z == doctest::Approx(1.0f).epsilon(EPSILON));
+}
+
+TEST_CASE_FIXTURE(BarycentricTestFixture,"Barycentric weights with clockwise triangle (negative area)")
+{
+    vect2_t<float> a{276.0f, 155.0f};
+    vect2_t<float> b{523.0f, 155.0f};
+    vect2_t<float> c{264.0f, 408.0f};
+
+    // Pick a point roughly near center of the triangle
+    vect2_t<float> p{277.0f, 156.0f};
+
+    auto weights = Math3D::BarycentricWeights(a, b, c, p);
+
+    // Check that weights sum to ~1
+    CHECK(weights.x + weights.y + weights.z == doctest::Approx(1.0f).epsilon(EPSILON));
+}
