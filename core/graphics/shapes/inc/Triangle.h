@@ -4,8 +4,12 @@
 #include "graphics/textures/inc/Textures.h"
 
 #include "common/inc/Vectors.hpp"
+#include "glm/vec4.hpp"
 
 #include <array>
+
+#include "utils/inc/GlmAdapter.h"
+#include "utils/inc/GlmAdapter.h"
 
 struct Face
 {
@@ -20,7 +24,7 @@ struct Face
 
 struct Triangle
 {
-    std::array<vect2_t<float>,3> _points;
+    std::array<glm::vec4, 3> _points;
     uint32_t _color{0xFFFFFFFF};
     std::array<Texture2d,3> textCoord{};
 
@@ -32,8 +36,8 @@ struct Triangle
 
     void setAvgDepth(const float avgDepth) { _avgDepth = avgDepth; }
 
-    Triangle(const vect2_t<float> point0, const vect2_t<float> point1, const vect2_t<float> point2):_points({{point0,point1,point2}}){}
-    explicit Triangle(const std::array<vect2_t<float>, 3>& points) : _points(points){}
+    Triangle(const glm::vec4 point0, const glm::vec4 point1, const glm::vec4 point2):_points({{point0,point1,point2}}){}
+    explicit Triangle(const std::array<glm::vec4, 3>& points) : _points(points){}
     Triangle() = default;
 
 
@@ -44,7 +48,7 @@ private:
 
 struct Vertex2D
 {
-    vect2_t<float> pos{};
+    glm::vec4 pos{};
     Texture2d uv{};
 };
 
@@ -59,7 +63,7 @@ struct TriangleTextured
     [[nodiscard]] TriangleTextured sortByHeight() const;
 
     [[nodiscard]] Vertex2D getMidPoint() const;
-    [[nodiscard]] std::array<vect2_t<float>,3> getPoints() const;
+    [[nodiscard]] std::array<glm::vec4, 3> getPoints() const;
     [[nodiscard]] std::array<Texture2d,3> getUVs() const;
 };
 

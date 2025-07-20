@@ -55,7 +55,7 @@ int InitWindow(SDL_Renderer*& renderer, SDL_Window*& window)
         return 1;
     }
 
-    window = SDL_CreateWindow("SDL2 Application", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("SDL2 Application", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
     if (window == nullptr)
     {
         std::cerr << std::format("SDL_Init Error: {}", SDL_GetError()) << std::endl;
@@ -154,7 +154,7 @@ void update()
     }
 
     prevFrameTime = SDL_GetTicks64();
-    globalMesh.rotation.x += +0.0;
+    globalMesh.rotation.x += +0.2;
     globalMesh.rotation.y += +0.0;
     globalMesh.rotation.z += +0.0;
 
@@ -227,7 +227,7 @@ void update()
 
                     res.x += WINDOW_WIDTH / 2.0f;
                     res.y += WINDOW_HEIGHT / 2.0f;
-                    return vect2_t<float>{res.x,res.y};
+                    return res;
                 });
             trianglesToRender.push_back(projectedTriangle);
         }
@@ -243,11 +243,11 @@ void update()
 
 }
 
-void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& colorBuffer, SDL_Texture*& colorBufferTexture)
+void render(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*& colorBufferTexture)
 {
     auto renderColorBuffer = [&]()
     {
-      SDL_UpdateTexture(colorBufferTexture, nullptr, &colorBuffer, static_cast<int>(WINDOW_WIDTH * sizeof(uint32_t)));
+      SDL_UpdateTexture(colorBufferTexture, nullptr, colorBuffer.data(), static_cast<int>(WINDOW_WIDTH * sizeof(uint32_t)));
       SDL_RenderCopy(renderer, colorBufferTexture, nullptr, nullptr);
     };
 
@@ -295,12 +295,12 @@ void render(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& co
 
     }
     renderColorBuffer();
-    colorBuffer.fill(0xFF000000);
+    std::ranges::fill(colorBuffer, toColorValue(Colors::BLACK));
     SDL_RenderPresent(renderer);
 
 }
 
-void setup(SDL_Renderer*& renderer, std::array<uint32_t, COLOR_BUFFER_SIZE>& colorBuffer, SDL_Texture*& colorBufferTexture)
+void setup(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*& colorBufferTexture)
 {
     std::ranges::fill(colorBuffer, ZERO_VALUE_COLOR_BUFFER);
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
@@ -356,7 +356,8 @@ int main(int argc, char* argv[])
     }
 
     SDL_Texture* colorBufferTexture;
-    std::array<uint32_t, COLOR_BUFFER_SIZE> colorBuffer{};
+    ColorBufferArray colorBuffer{};
+    colorBuffer.resize(COLOR_BUFFER_SIZE);
     setup(renderer,colorBuffer,colorBufferTexture);
     auto quit{false};
 

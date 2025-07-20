@@ -87,10 +87,10 @@ Vertex2D TriangleTextured::getMidPoint() const
 {
     auto [point0, point1, point2] = _pointsWithUV;
     const auto midPointX = point0.pos.x + ((point1.pos.y- point0.pos.y)*(point2.pos.x - point0.pos.x) / (point2.pos.y - point0.pos.y) );
-    return {midPointX,point1.pos.y, {}};
+    return {{midPointX,point1.pos.y, point1.pos.z, point1.pos.w}, {}};
 }
 
-std::array<vect2_t<float>, 3> TriangleTextured::getPoints() const
+std::array<glm::vec4, 3> TriangleTextured::getPoints() const
 {
     return {{_pointsWithUV[0].pos, _pointsWithUV[1].pos, _pointsWithUV[2].pos}};
 }

@@ -282,8 +282,8 @@ void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const Triangle&
 
     auto midPointOfTriangle {triangleSorted.getMidPoint()};
 
-    Triangle upTriangle{triangleSorted._points[0], triangleSorted._points[1], midPointOfTriangle};
-    Triangle bottomTriangle{triangleSorted._points[1], midPointOfTriangle, triangleSorted._points[2]};
+    Triangle upTriangle{triangleSorted._points[0], triangleSorted._points[1], {midPointOfTriangle.x, midPointOfTriangle.y,0,0}};
+    Triangle bottomTriangle{triangleSorted._points[1], {midPointOfTriangle.x, midPointOfTriangle.y,0,0}, triangleSorted._points[2]};
 
     drawFlatBottomTriangle(colorBuffer, upTriangle, color);
     drawFlatTopTriangle(colorBuffer,bottomTriangle,color);
@@ -296,18 +296,20 @@ internal void drawTexel(ColorBufferArray& colorBuffer,
                         int xCoord,
                         int yCoord)
 {
-        vect2_t<float> pointP{static_cast<float>(xCoord), static_cast<float>(yCoord)};
-        const auto& [pointA, pointB, pointC] = triangle.getPoints();
-        const auto& [pointAUV, pointBUV, pointCUV] = triangle.getUVs();
-        const auto& [alpha, beta, gama] = Math3D::BarycentricWeights(pointA, pointB, pointC, pointP);
+    vect2_t<float> pointP{static_cast<float>(xCoord), static_cast<float>(yCoord)};
+    const auto& [pointA, pointB, pointC] = triangle.getPoints();
+    const auto& [pointAUV, pointBUV, pointCUV] = triangle.getUVs();
+    const auto& barycentricWeightsResult =  Math3D::BarycentricWeights({pointA.x, pointA.y}, {pointB.x, pointB.y}, {pointC.x, pointC.y},pointP);
+    const auto& [alpha, beta, gama] = barycentricWeightsResult;
 
-        float interpolatedU = pointAUV.u * alpha + pointBUV.u * beta + pointCUV.u * gama;
-        float interpolatedV = pointAUV.v * alpha + pointBUV.v * beta + pointCUV.v * gama;
 
-        int texelIndexX = static_cast<int>(std::clamp(abs(interpolatedU), 0.0f, 1.0f) * TEXTURE_WIDTH );
-        int texelIndexY = static_cast<int>(std::clamp(abs(interpolatedV), 0.0f, 1.0f) * TEXTURE_HEIGHT);
+    float interpolatedU = pointAUV.u * alpha + pointBUV.u * beta + pointCUV.u * gama;
+    float interpolatedV = pointAUV.v * alpha + pointBUV.v * beta + pointCUV.v * gama;
 
-        drawPixel(colorBuffer, xCoord, yCoord, texture[(TEXTURE_WIDTH * texelIndexY) + texelIndexX]);
+    int texelIndexX = static_cast<int>(std::clamp(abs(interpolatedU), 0.0f, 1.0f) * TEXTURE_WIDTH );
+    int texelIndexY = static_cast<int>(std::clamp(abs(interpolatedV), 0.0f, 1.0f) * TEXTURE_HEIGHT);
+
+    drawPixel(colorBuffer, xCoord, yCoord, texture[(TEXTURE_WIDTH * texelIndexY) + texelIndexX]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
