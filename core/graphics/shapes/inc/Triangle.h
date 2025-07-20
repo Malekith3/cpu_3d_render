@@ -59,6 +59,7 @@ struct TriangleTextured
     TriangleTextured() = default;
 
     explicit TriangleTextured(const Triangle &triangle);
+    explicit TriangleTextured(const std::array<Vertex2D,3>& pointsWithUV);
 
     [[nodiscard]] TriangleTextured sortByHeight() const;
 

@@ -10,7 +10,8 @@ constexpr auto FRAME_TIME = 1000 / TARGETED_FRAME_RATE;
 constexpr size_t WINDOW_WIDTH = 1280u;
 constexpr size_t WINDOW_HEIGHT = 720u;
 constexpr size_t COLOR_BUFFER_SIZE = WINDOW_WIDTH*WINDOW_HEIGHT;
-constexpr uint32_t ZERO_VALUE_COLOR_BUFFER = 0xFF000000;
+constexpr uint32_t ZERO_VALUE_COLOR_BUFFER = 0x000000FF;
+constexpr uint32_t ERROR_COLOR = 0xFFFF00FF;
 using ColorBufferArray = std::vector<uint32_t>;
 
 #endif //COMMONDEFINES_H

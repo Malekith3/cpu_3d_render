@@ -47,7 +47,9 @@ glm::vec4 projectWithMat(const glm::mat4x4& projectMatrix, const glm::vec4& vec)
     glm::vec4 projectedVect =   projectMatrix * vec ;
     if (projectedVect.w != 0)
     {
-        projectedVect /= projectedVect.w;
+        projectedVect.x /= projectedVect.w;
+        projectedVect.y /= projectedVect.w;
+        projectedVect.z /= projectedVect.w;
     }
 
     return projectedVect;

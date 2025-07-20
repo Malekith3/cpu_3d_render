@@ -17,6 +17,8 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "common/inc/lodepng.h"
+
 namespace
 {
     vect3_t<float> cameraPosition{0.0f,0.0f,0.0f};
@@ -45,6 +47,38 @@ namespace
     bool isBackFaceCullingEnabled{true};
     RenderingStates renderingState{RenderingStates::WIREFRAME_ONLY};
 
+}
+
+
+std::vector<uint32_t> LoadPngToSDLExpectedFormat(const std::string& filePath, int& width, int& height)
+{
+    std::vector<unsigned char> image;
+    unsigned w, h;
+
+    unsigned error = lodepng::decode(image, w, h, filePath, LodePNGColorType::LCT_RGBA);
+    if (error)
+    {
+        throw std::runtime_error("LodePNG load error " + std::to_string(error) + ": " + lodepng_error_text(error));
+    }
+
+    width = static_cast<int>(w);
+    height = static_cast<int>(h);
+    const size_t pixelCount = static_cast<size_t>(width) * height;
+    constexpr int numberOfChannels = 4;
+    std::vector<uint32_t> result;
+    result.reserve(pixelCount);
+
+    for (size_t i = 0; i < pixelCount; ++i)
+    {
+        uint8_t r = image[i * numberOfChannels + 0];
+        uint8_t g = image[i * numberOfChannels + 1];
+        uint8_t b = image[i * numberOfChannels + 2];
+        uint8_t a = image[i * numberOfChannels + 3];
+
+        result.push_back((r << 24) | (g << 16) | (b << 8) | a);
+    }
+
+    return result;
 }
 
 int InitWindow(SDL_Renderer*& renderer, SDL_Window*& window)
@@ -154,7 +188,7 @@ void update()
     }
 
     prevFrameTime = SDL_GetTicks64();
-    globalMesh.rotation.x += +0.2;
+    globalMesh.rotation.x += +0.1;
     globalMesh.rotation.y += +0.0;
     globalMesh.rotation.z += +0.0;
 
@@ -303,7 +337,7 @@ void render(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*
 void setup(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*& colorBufferTexture)
 {
     std::ranges::fill(colorBuffer, ZERO_VALUE_COLOR_BUFFER);
-    colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
+    colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR32, SDL_TEXTUREACCESS_STREAMING,
                                            WINDOW_WIDTH, WINDOW_HEIGHT);
 
     constexpr auto fov = glm::radians(60.0f);
@@ -319,10 +353,14 @@ void setup(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*&
     std::ranges::copy(cubeMeshFaces, std::back_inserter(loadedFaces));
     std::ranges::copy(cubeMeshVert, std::back_inserter(loadedVertex));
 
-    //good old unsafe c way :D
-    textureMesh.assign(
-    reinterpret_cast<const uint32_t*>(REDBRICK_TEXTURE.data()),
-    reinterpret_cast<const uint32_t*>(REDBRICK_TEXTURE.data() + REDBRICK_TEXTURE.size()));
+
+    std::vector<unsigned char> png;
+    std::vector<unsigned char> image; //the raw pixels
+    int width, height;
+
+    //load and decode
+    auto texture = LoadPngToSDLExpectedFormat("assets/cube.png", width, height);
+    textureMesh.insert(textureMesh.end(), std::make_move_iterator(texture.begin()), std::make_move_iterator(texture.end()));
 
     // //Fancy modern cpp way with chunks
     // textureMesh.reserve(REDBRICK_TEXTURE.size() / 4);

@@ -302,14 +302,26 @@ internal void drawTexel(ColorBufferArray& colorBuffer,
     const auto& barycentricWeightsResult =  Math3D::BarycentricWeights({pointA.x, pointA.y}, {pointB.x, pointB.y}, {pointC.x, pointC.y},pointP);
     const auto& [alpha, beta, gama] = barycentricWeightsResult;
 
+    float interpolatedU = (pointAUV.u / pointA.w) * alpha + (pointBUV.u / pointB.w) * beta + (pointCUV.u / pointC.w) * gama;
+    float interpolatedV = (pointAUV.v / pointA.w) * alpha + (pointBUV.v / pointB.w) * beta + (pointCUV.v / pointC.w) * gama;
+    
+    const float interpolatedReciprocalW = alpha * (1/ pointA.w) + beta * (1/ pointB.w) + gama * (1/ pointC.w);
 
-    float interpolatedU = pointAUV.u * alpha + pointBUV.u * beta + pointCUV.u * gama;
-    float interpolatedV = pointAUV.v * alpha + pointBUV.v * beta + pointCUV.v * gama;
+    interpolatedU /= interpolatedReciprocalW;
+    interpolatedV /= interpolatedReciprocalW;
 
-    int texelIndexX = static_cast<int>(std::clamp(abs(interpolatedU), 0.0f, 1.0f) * TEXTURE_WIDTH );
-    int texelIndexY = static_cast<int>(std::clamp(abs(interpolatedV), 0.0f, 1.0f) * TEXTURE_HEIGHT);
+    const int texelIndexX = static_cast<int>(std::clamp(abs(interpolatedU), 0.0f, 1.0f) * TEXTURE_WIDTH );
+    const int texelIndexY = static_cast<int>(std::clamp(abs(interpolatedV), 0.0f, 1.0f) * TEXTURE_HEIGHT);
 
-    drawPixel(colorBuffer, xCoord, yCoord, texture[(TEXTURE_WIDTH * texelIndexY) + texelIndexX]);
+    if (const size_t textureIndex = (TEXTURE_WIDTH * texelIndexY) + texelIndexX; textureIndex < texture.size())
+    {
+        drawPixel(colorBuffer, xCoord, yCoord, texture[textureIndex]);
+    }
+    else
+    {
+        drawPixel(colorBuffer, xCoord, yCoord, ERROR_COLOR);
+    }
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -327,41 +339,43 @@ internal void drawTexel(ColorBufferArray& colorBuffer,
 ///////////////////////////////////////////////////////////////////////////////
 void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, std::vector<uint32_t> &texture, TriangleTextured &triangle)
 {
-    auto& [vertex0, vertex1, vertex2] = triangle._pointsWithUV;
+    auto& vertices = triangle._pointsWithUV;
 
-    if (vertex0.pos.x > vertex1.pos.x)
+    if (vertices[0].pos.x > vertices[1].pos.x)
     {
-        std::swap(vertex0, vertex1);
+        std::swap(vertices[0], vertices[1]);
     }
 
-    auto point0 = vertex0.pos; // top-left (flat top)
-    auto point1 = vertex1.pos; // top-right (flat top)
-    auto point2 = vertex2.pos; // bottom
+    auto& v0 = vertices[0]; // top-left
+    auto& v1 = vertices[1]; // top-right
+    auto& v2 = vertices[2]; // bottom
 
-    const float area = (point1.x - point0.x) * (point2.y - point0.y) -
-                       (point2.x - point0.x) * (point1.y - point0.y);
+    const float area = (v1.pos.x - v0.pos.x) * (v2.pos.y - v0.pos.y) -
+                       (v2.pos.x - v0.pos.x) * (v1.pos.y - v0.pos.y);
+
     if (std::abs(area) < EPSILON)
         return; // Degenerate triangle
 
-    float dyLeft  = point2.y - point0.y;
-    float dyRight = point2.y - point1.y;
+    // Calculate slopes for left and right edges
+    const float dyLeft = v2.pos.y - v0.pos.y;
+    const float dyRight = v2.pos.y - v1.pos.y;
 
     if (std::abs(dyLeft) <= EPSILON || std::abs(dyRight) <= EPSILON)
-        return; // Prevent division by zero
+        return;
 
-    float invSlopeLeft  = (point2.x - point0.x) / dyLeft;
-    float invSlopeRight = (point2.x - point1.x) / dyRight;
+    const float invSlopeLeft = (v2.pos.x - v0.pos.x) / dyLeft;
+    const float invSlopeRight = (v2.pos.x - v1.pos.x) / dyRight;
 
-    int startY = static_cast<int>(std::ceil(point0.y));  // Top edge
-    int endY   = static_cast<int>(std::ceil(point2.y));  // Bottom point
+    const int startY = static_cast<int>(std::ceil(v0.pos.y));
+    const int endY = static_cast<int>(std::ceil(v2.pos.y));
 
-    for (int y = startY; y < endY; y++)  // scan from top to bottom
+    for (int y = startY; y < endY; y++)
     {
-        float xStartF = point0.x + (y - point0.y) * invSlopeLeft;
-        float xEndF   = point1.x + (y - point1.y) * invSlopeRight;
+        float xLeft = v0.pos.x + (y - v0.pos.y) * invSlopeLeft;
+        float xRight = v1.pos.x + (y - v1.pos.y) * invSlopeRight;
 
-        int xStart = static_cast<int>(std::ceil(xStartF));
-        int xEnd   = static_cast<int>(std::ceil(xEndF));
+        const int xStart = static_cast<int>(std::ceil(std::min(xLeft, xRight)));
+        const int xEnd = static_cast<int>(std::ceil(std::max(xLeft, xRight)));
 
         for (int x = xStart; x < xEnd; x++)
         {
@@ -369,9 +383,6 @@ void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, std::vector<uint
         }
     }
 }
-
-
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Draw a filled a triangle with a flat bottom with texture
@@ -388,44 +399,43 @@ void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, std::vector<uint
 ///////////////////////////////////////////////////////////////////////////////
 void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, std::vector<uint32_t> &texture, TriangleTextured &triangle)
 {
-    auto [vertex0, vertex1, vertex2] = triangle._pointsWithUV;
+    auto& vertices = triangle._pointsWithUV;
 
-    if (vertex1.pos.x > vertex2.pos.x)
+    // Ensure vertices[1] is left and vertices[2] is right on the flat bottom
+    if (vertices[1].pos.x > vertices[2].pos.x)
     {
-        std::swap(vertex1, vertex2);
+        std::swap(vertices[1], vertices[2]);
     }
 
-    const auto point0 = vertex0.pos; // top
-    const auto point1 = vertex1.pos; // bottom-left
-    const auto point2 = vertex2.pos; // bottom-right
+    auto& v0 = vertices[0]; // top
+    auto& v1 = vertices[1]; // bottom-left
+    auto& v2 = vertices[2]; // bottom-right
 
-    const float area = (point1.x - point0.x) * (point2.y - point0.y) -
-                       (point2.x - point0.x) * (point1.y - point0.y);
+    const float area = (v1.pos.x - v0.pos.x) * (v2.pos.y - v0.pos.y) -
+                       (v2.pos.x - v0.pos.x) * (v1.pos.y - v0.pos.y);
 
     if (std::abs(area) < EPSILON)
         return; // Degenerate triangle
 
-    float dy1 = point1.y - point0.y;
-    float dy2 = point2.y - point0.y;
+    const float dyLeft = v1.pos.y - v0.pos.y;
+    const float dyRight = v2.pos.y - v0.pos.y;
 
-    if (std::abs(dy1) <= EPSILON || std::abs(dy2) <= EPSILON)
+    if (std::abs(dyLeft) <= EPSILON || std::abs(dyRight) <= EPSILON)
         return;
 
+    const float invSlopeLeft = (v1.pos.x - v0.pos.x) / dyLeft;
+    const float invSlopeRight = (v2.pos.x - v0.pos.x) / dyRight;
 
-    float invSlop1 = (point1.x - point0.x) / dy1;
-    float invSlop2 = (point2.x - point0.x) / dy2;
-
-
-    int startY = static_cast<int>(std::ceil(point0.y));
-    int endY   = static_cast<int>(std::ceil(point1.y));
+    const int startY = static_cast<int>(std::ceil(v0.pos.y));
+    const int endY = static_cast<int>(std::ceil(v1.pos.y));
 
     for (int y = startY; y < endY; y++)
     {
-        const float scanCurx1 = point0.x + (y - point0.y) * invSlop1;
-        const float scanCurx2 = point0.x + (y - point0.y) * invSlop2;
+        float xLeft = v0.pos.x + (y - v0.pos.y) * invSlopeLeft;
+        float xRight = v0.pos.x + (y - v0.pos.y) * invSlopeRight;
 
-        int xStart = static_cast<int>(std::ceil(scanCurx1));
-        int xEnd   = static_cast<int>(std::ceil(scanCurx2));
+        int xStart = static_cast<int>(std::ceil(std::min(xLeft, xRight)));
+        int xEnd = static_cast<int>(std::ceil(std::max(xLeft, xRight)));
 
         for (int x = xStart; x < xEnd; x++)
         {
@@ -434,24 +444,84 @@ void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, std::vector<u
     }
 }
 
-
-
+///////////////////////////////////////////////////////////////////////////////
+// Main triangle drawing function with proper triangle splitting
+///////////////////////////////////////////////////////////////////////////////
 void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle, std::vector<uint32_t> &texture)
 {
     const TriangleTextured triangleTextured{triangle};
-    auto sortedTexturedTriangles{triangleTextured.sortByHeight()};
+    auto vertices = triangleTextured._pointsWithUV; // Make a copy for sorting
 
-    if (std::abs(sortedTexturedTriangles._pointsWithUV[1].pos.y - sortedTexturedTriangles._pointsWithUV[2].pos.y) < EPSILON)
+    // Sort vertices by y-coordinate (ascending)
+    std::ranges::sort(vertices, [](const Vertex2D& a, const Vertex2D& b) {
+        return a.pos.y < b.pos.y;
+    });
+
+    const auto& v0 = vertices[0]; // top vertex
+    const auto& v1 = vertices[1]; // middle vertex
+    const auto& v2 = vertices[2]; // bottom vertex
+
+    // Check for degenerate cases
+    if (std::abs(v0.pos.y - v2.pos.y) < EPSILON)
+        return;
+
+    if (std::abs(v1.pos.y - v2.pos.y) < EPSILON)
     {
-        drawFlatBottomTriangleTextured(colorBuffer, texture, sortedTexturedTriangles);
+        TriangleTextured flatBottomTri;
+        flatBottomTri._pointsWithUV = {v0, v1, v2};
+        drawFlatBottomTriangleTextured(colorBuffer, texture, flatBottomTri);
+        return;
     }
 
-    if (std::abs(sortedTexturedTriangles._pointsWithUV[1].pos.y - sortedTexturedTriangles._pointsWithUV[0].pos.y) < EPSILON)
+    if (std::abs(v0.pos.y - v1.pos.y) < EPSILON)
     {
-        drawFlatTopTriangleTextured(colorBuffer, texture, sortedTexturedTriangles);
+        TriangleTextured flatTopTri;
+        flatTopTri._pointsWithUV = {v0, v1, v2};
+        drawFlatTopTriangleTextured(colorBuffer, texture, flatTopTri);
+        return;
     }
 
+    // Case 3: General triangle - split into flat-bottom and flat-top parts
+
+    // Find the x-coordinate where the horizontal line at v1.y intersects the long edge (v0->v2)
+    const float slopeMiddlePoint = (v1.pos.y - v0.pos.y) / (v2.pos.y - v0.pos.y);
+    const float splitX = v0.pos.x + slopeMiddlePoint * (v2.pos.x - v0.pos.x);
+
+    // Perspective-correct interpolation for UV coordinates and other attributes
+    const float u0OverW0 = v0.uv.u / v0.pos.w;
+    const float u2OverW2 = v2.uv.u / v2.pos.w;
+    const float v0OverW0 = v0.uv.v / v0.pos.w;
+    const float v2OverW2 = v2.uv.v / v2.pos.w;
+    const float reciprocalW0 = 1.0f / v0.pos.w;
+    const float reciprocalW2 = 1.0f / v2.pos.w;
+
+    const float interpolatedUOverW = u0OverW0 + slopeMiddlePoint * (u2OverW2 - u0OverW0);
+    const float interpolatedVOverW = v0OverW0 + slopeMiddlePoint * (v2OverW2 - v0OverW0);
+    const float interpolatedOneOverW = reciprocalW0 + slopeMiddlePoint * (reciprocalW2 - reciprocalW0);
+    const float interpolatedW = 1.0f / interpolatedOneOverW;
+
+    const float splitU = interpolatedUOverW * interpolatedW;
+    const float splitV = interpolatedVOverW * interpolatedW;
+
+    // Create the split vertex
+    Vertex2D splitVertex;
+    splitVertex.pos.x = splitX;
+    splitVertex.pos.y = v1.pos.y;
+    splitVertex.pos.z = v0.pos.z + slopeMiddlePoint * (v2.pos.z - v0.pos.z); // Linear interpolation for z
+    splitVertex.pos.w = interpolatedW;
+    splitVertex.uv.u = splitU;
+    splitVertex.uv.v = splitV;
+
+    // Draw upper triangle (flat-bottom)
+    // Top vertex: v0, Bottom edge: v1 and splitVertex
+    TriangleTextured upperTri;
+    upperTri._pointsWithUV = {v0, v1, splitVertex};
+    drawFlatBottomTriangleTextured(colorBuffer, texture, upperTri);
+
+    // Draw lower triangle (flat-top)
+    // Top edge: v1 and splitVertex, Bottom vertex: v2
+    TriangleTextured lowerTri;
+    lowerTri._pointsWithUV = {v1, splitVertex, v2};
+    drawFlatTopTriangleTextured(colorBuffer, texture, lowerTri);
 }
-
-
 }

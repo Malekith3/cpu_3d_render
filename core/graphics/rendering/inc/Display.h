@@ -2,6 +2,7 @@
 #define DISPLAY_H
 #include <cstdint>
 
+#include "common/inc/Colors.h"
 #include "graphics/textures/inc/Textures.h"
 
 #include "common/inc/CommonDefines.h"
@@ -28,15 +29,15 @@ enum class LineRasterAlgo : uint8_t
     BRESENHAM
 };
 
-void drawGrid(ColorBufferArray& colorBuffer, uint32_t gridColor = 0xFF000000, size_t gridSpacing = 10u , size_t gridWidth = 1u);
+void drawGrid(ColorBufferArray& colorBuffer, uint32_t gridColor = toColorValue(Colors::BLACK), size_t gridSpacing = 10u , size_t gridWidth = 1u);
 void drawRect(ColorBufferArray& colorBuffer, int posX, int posY, size_t width, size_t height, uint32_t color);
 void drawPixel(ColorBufferArray& colorBuffer, int posX, int posY, uint32_t color);
-void drawTriangle(ColorBufferArray& colorBuffer, const Point& point1, const Point& point2, const Point& point3, size_t color = 0xFFFFFF00, LineRasterAlgo
+void drawTriangle(ColorBufferArray& colorBuffer, const Point& point1, const Point& point2, const Point& point3, size_t color = toColorValue(Colors::WHITE), LineRasterAlgo
               algoType = LineRasterAlgo::DDA);
 void drawLine(ColorBufferArray& colorBuffer, const Point& startPoint, const Point& endPoint,
-              LineRasterAlgo algoType = LineRasterAlgo::DDA, uint32_t  color = 0xFFFFFF00);
+              LineRasterAlgo algoType = LineRasterAlgo::DDA, uint32_t  color = toColorValue(Colors::WHITE));
 vect2_t<float> projectNonMatrix(const vect3_t<float>& point);
-void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const Triangle& triangle, size_t color = 0xFFFFFF00);
+void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const Triangle& triangle, size_t color = toColorValue(Colors::WHITE));
 void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle, std::vector<uint32_t> &texture);
 }
 

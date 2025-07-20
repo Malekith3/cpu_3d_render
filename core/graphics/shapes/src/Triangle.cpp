@@ -67,6 +67,11 @@ TriangleTextured::TriangleTextured(const Triangle &triangle)
     }
 }
 
+TriangleTextured::TriangleTextured(const std::array<Vertex2D, 3>& pointsWithUV)
+{
+    _pointsWithUV = pointsWithUV;
+}
+
 TriangleTextured TriangleTextured::sortByHeight() const
 {
     TriangleTextured sortedTriangle = *this;
@@ -86,8 +91,8 @@ TriangleTextured TriangleTextured::sortByHeight() const
 Vertex2D TriangleTextured::getMidPoint() const
 {
     auto [point0, point1, point2] = _pointsWithUV;
-    const auto midPointX = point0.pos.x + ((point1.pos.y- point0.pos.y)*(point2.pos.x - point0.pos.x) / (point2.pos.y - point0.pos.y) );
-    return {{midPointX,point1.pos.y, point1.pos.z, point1.pos.w}, {}};
+    const auto midPointX = point0.pos.x + ((point1.pos.y- point0.pos.y) * (point2.pos.x - point0.pos.x) / (point2.pos.y - point0.pos.y) );
+    return {{midPointX, point1.pos.y, point1.pos.z, point1.pos.w},{}};
 }
 
 std::array<glm::vec4, 3> TriangleTextured::getPoints() const
