@@ -291,7 +291,7 @@ void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const Triangle&
 }
 
 internal void drawTexel(ColorBufferArray& colorBuffer,
-                        std::vector<uint32_t>& texture,
+                        Texture2dArray& texture,
                         const TriangleTextured& triangle,
                         int xCoord,
                         int yCoord)
@@ -310,12 +310,12 @@ internal void drawTexel(ColorBufferArray& colorBuffer,
     interpolatedU /= interpolatedReciprocalW;
     interpolatedV /= interpolatedReciprocalW;
 
-    const int texelIndexX = static_cast<int>(std::clamp(abs(interpolatedU), 0.0f, 1.0f) * TEXTURE_WIDTH );
-    const int texelIndexY = static_cast<int>(std::clamp(abs(interpolatedV), 0.0f, 1.0f) * TEXTURE_HEIGHT);
+    const size_t texelIndexX = static_cast<size_t>(interpolatedU * static_cast<float>(texture.width)) % texture.width;
+    const size_t texelIndexY = static_cast<size_t>(interpolatedV * static_cast<float>(texture.height)) % texture.height;
 
-    if (const size_t textureIndex = (TEXTURE_WIDTH * texelIndexY) + texelIndexX; textureIndex < texture.size())
+    if (const size_t textureIndex = (texture.width * texelIndexY) + texelIndexX; textureIndex < texture.data.size())
     {
-        drawPixel(colorBuffer, xCoord, yCoord, texture[textureIndex]);
+        drawPixel(colorBuffer, xCoord, yCoord, texture.data[textureIndex]);
     }
     else
     {
@@ -337,7 +337,7 @@ internal void drawTexel(ColorBufferArray& colorBuffer,
 //        (x2,y2)
 //
 ///////////////////////////////////////////////////////////////////////////////
-void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, std::vector<uint32_t> &texture, TriangleTextured &triangle)
+void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, Texture2dArray& texture, TriangleTextured &triangle)
 {
     auto& vertices = triangle._pointsWithUV;
 
@@ -397,7 +397,7 @@ void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, std::vector<uint
 //  (x1,y1)------(x2,y2)
 //
 ///////////////////////////////////////////////////////////////////////////////
-void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, std::vector<uint32_t> &texture, TriangleTextured &triangle)
+void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, Texture2dArray& texture, TriangleTextured &triangle)
 {
     auto& vertices = triangle._pointsWithUV;
 
@@ -447,7 +447,7 @@ void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, std::vector<u
 ///////////////////////////////////////////////////////////////////////////////
 // Main triangle drawing function with proper triangle splitting
 ///////////////////////////////////////////////////////////////////////////////
-void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle, std::vector<uint32_t> &texture)
+void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle, Texture2dArray& texture)
 {
     const TriangleTextured triangleTextured{triangle};
     auto vertices = triangleTextured._pointsWithUV; // Make a copy for sorting

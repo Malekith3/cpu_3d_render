@@ -38,7 +38,7 @@ void drawLine(ColorBufferArray& colorBuffer, const Point& startPoint, const Poin
               LineRasterAlgo algoType = LineRasterAlgo::DDA, uint32_t  color = toColorValue(Colors::WHITE));
 vect2_t<float> projectNonMatrix(const vect3_t<float>& point);
 void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const Triangle& triangle, size_t color = toColorValue(Colors::WHITE));
-void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle, std::vector<uint32_t> &texture);
+void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle, Texture2dArray& texture);
 }
 
 #endif //DISPLAY_H

@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdint>
+#include <vector>
 
 struct Texture2d
 {
@@ -10,8 +11,16 @@ struct Texture2d
     float v{0.0f};
 };
 
-constexpr int TEXTURE_WIDTH{64};
-constexpr int TEXTURE_HEIGHT{64};
+struct Texture2dArray
+{
+    int width{0};
+    int height{0};
+    int channels{4};
+    std::vector<uint32_t> data;
+};
+
+constexpr int TEXTURE_WIDTH{256};
+constexpr int TEXTURE_HEIGHT{256};
 constexpr int TEXTURE_CHANNELS{4};
 using TextureArray = std::array<uint8_t, TEXTURE_WIDTH * TEXTURE_HEIGHT * TEXTURE_CHANNELS>;
 

@@ -107,6 +107,8 @@ void LoadOBJFileSimplified(const std::filesystem::path& pathToOBJ, std::vector<v
     std::string line;
     std::regex checkRelStarting(R"(^\s*(v|vt|f|vn)\s)");
 
+    std::vector<Texture2d> texturesCoord;
+
     while (std::getline(objFile, line))
     {
         if (std::regex_search(line, checkRelStarting))
@@ -125,12 +127,27 @@ void LoadOBJFileSimplified(const std::filesystem::path& pathToOBJ, std::vector<v
                     &v[0], &t[0], &n[0],
                     &v[1], &t[1], &n[1],
                     &v[2], &t[2], &n[2]);
-                facesArray.emplace_back(v[0], v[1], v[2]);
+
+                auto aTextCoord = texturesCoord[t[0] - 1];
+                auto bTextCoord = texturesCoord[t[1] - 1];
+                auto cTextCoord = texturesCoord[t[2] - 1];
+                Face newFace{
+                    .a=v[0],
+                    .b=v[1],
+                    .c=v[2],
+                    .a_uv=aTextCoord,
+                    .b_uv=bTextCoord,
+                    .c_uv=cTextCoord
+                };
+                facesArray.push_back(std::move(newFace));
             }
             else if (line.starts_with("vt "))
             {
-                // Process texture coordinate data (if needed)
-                continue;
+                float uCoord, vCoord;
+                sscanf(line.c_str(), "vt %f %f", &uCoord, &vCoord);
+                //We need to flip
+                vCoord = 1 - vCoord;
+                texturesCoord.emplace_back(uCoord, vCoord);
             }
             else if (line.starts_with("vn "))
             {

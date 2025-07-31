@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <format>
+#include <fstream>
 #include <iostream>
 #include <vector>
 
@@ -24,7 +25,7 @@ namespace
     vect3_t<float> cameraPosition{0.0f,0.0f,0.0f};
     std::vector<Triangle> trianglesToRender;
     Mesh globalMesh;
-    std::vector<uint32_t> textureMesh;
+    Texture2dArray textureMesh;
     glm::mat4x4 projectionMat{0};
 
     enum class VertexPoint : uint8_t
@@ -188,8 +189,8 @@ void update()
     }
 
     prevFrameTime = SDL_GetTicks64();
-    globalMesh.rotation.x += +0.1;
-    globalMesh.rotation.y += +0.0;
+    globalMesh.rotation.x += +0.2;
+    globalMesh.rotation.y += +0.1;
     globalMesh.rotation.z += +0.0;
 
     // globalMesh.translation.x += 0.01;
@@ -349,9 +350,9 @@ void setup(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*&
 
     std::vector<vect3_t<float>> loadedVertex;
     std::vector<Face> loadedFaces;
-    // LoadOBJFileSimplified("./assets/f22.obj", loadedVertex, loadedFaces);
-    std::ranges::copy(cubeMeshFaces, std::back_inserter(loadedFaces));
-    std::ranges::copy(cubeMeshVert, std::back_inserter(loadedVertex));
+    LoadOBJFileSimplified("./assets/crab.obj", loadedVertex, loadedFaces);
+    // std::ranges::copy(cubeMeshFaces, std::back_inserter(loadedFaces));
+    // std::ranges::copy(cubeMeshVert, std::back_inserter(loadedVertex));
 
 
     std::vector<unsigned char> png;
@@ -359,9 +360,10 @@ void setup(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*&
     int width, height;
 
     //load and decode
-    auto texture = LoadPngToSDLExpectedFormat("assets/cube.png", width, height);
-    textureMesh.insert(textureMesh.end(), std::make_move_iterator(texture.begin()), std::make_move_iterator(texture.end()));
-
+    auto texture = LoadPngToSDLExpectedFormat("./assets/crab.png", width, height);
+    textureMesh.width = width;
+    textureMesh.height = height;
+    textureMesh.data.insert(textureMesh.data.end(), std::make_move_iterator(texture.begin()), std::make_move_iterator(texture.end()));
     // //Fancy modern cpp way with chunks
     // textureMesh.reserve(REDBRICK_TEXTURE.size() / 4);
     // for (const auto chunk : REDBRICK_TEXTURE | std::views::chunk(4))
