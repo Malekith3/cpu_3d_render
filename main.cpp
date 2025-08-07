@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstring>
 #include <format>
 #include <fstream>
 #include <iostream>
@@ -27,6 +28,7 @@ namespace
     Mesh globalMesh;
     Texture2dArray textureMesh;
     glm::mat4x4 projectionMat{0};
+    ZBufferArray zBuffer;
 
     enum class VertexPoint : uint8_t
     {
@@ -45,8 +47,8 @@ namespace
         TEXTURED_TRIANGLES_WITH_WIREFRAME, // Displays both textured triangles and wireframe lines
     };
 
-    bool isBackFaceCullingEnabled{true};
-    RenderingStates renderingState{RenderingStates::WIREFRAME_ONLY};
+    bool isBackFaceCullingEnabled{false};
+    RenderingStates renderingState{RenderingStates::TEXTURED_TRIANGLES};
 
 }
 
@@ -189,12 +191,9 @@ void update()
     }
 
     prevFrameTime = SDL_GetTicks64();
-    globalMesh.rotation.x += +0.2;
-    globalMesh.rotation.y += +0.1;
+    globalMesh.rotation.x += -0.2;
+    globalMesh.rotation.y += +0.0;
     globalMesh.rotation.z += +0.0;
-
-    // globalMesh.translation.x += 0.01;
-    // globalMesh.scale.x += 0.001;
 
     static auto offsetIndex = [](const int index){return index - 1;};
     for (const auto& [aFaceVert, bFaceVert, cFaceVert, meshColor, a_uv,b_uv,c_uv] : globalMesh.faces)
@@ -315,7 +314,7 @@ void render(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*
             renderingState == RenderingStates::TEXTURED_TRIANGLES
             || renderingState == RenderingStates::TEXTURED_TRIANGLES_WITH_WIREFRAME)
         {
-            Render::drawTexturedTriangle(colorBuffer, triangle, textureMesh);
+            Render::drawTexturedTriangle(colorBuffer, triangle, textureMesh, zBuffer);
         }
 
         if (
@@ -330,7 +329,8 @@ void render(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*
 
     }
     renderColorBuffer();
-    std::ranges::fill(colorBuffer, toColorValue(Colors::BLACK));
+    std::memset(colorBuffer.data(), 0, colorBuffer.size() * sizeof(uint32_t));
+    std::fill_n(zBuffer.begin(), zBuffer.size(), 1.0f);
     SDL_RenderPresent(renderer);
 
 }
@@ -341,6 +341,11 @@ void setup(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*&
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR32, SDL_TEXTUREACCESS_STREAMING,
                                            WINDOW_WIDTH, WINDOW_HEIGHT);
 
+    zBuffer.reserve(WINDOW_WIDTH * WINDOW_HEIGHT);
+    zBuffer.resize(WINDOW_WIDTH * WINDOW_HEIGHT);
+    std::fill_n(zBuffer.begin(), zBuffer.size(), 1.0f);
+
+
     constexpr auto fov = glm::radians(60.0f);
     constexpr float aspect =  WINDOW_WIDTH/ static_cast<float>(WINDOW_HEIGHT);
     constexpr float zNear = 0.1f;
@@ -350,7 +355,7 @@ void setup(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*&
 
     std::vector<vect3_t<float>> loadedVertex;
     std::vector<Face> loadedFaces;
-    LoadOBJFileSimplified("./assets/crab.obj", loadedVertex, loadedFaces);
+    LoadOBJFileSimplified("./assets/f22.obj", loadedVertex, loadedFaces);
     // std::ranges::copy(cubeMeshFaces, std::back_inserter(loadedFaces));
     // std::ranges::copy(cubeMeshVert, std::back_inserter(loadedVertex));
 
@@ -360,7 +365,7 @@ void setup(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*&
     int width, height;
 
     //load and decode
-    auto texture = LoadPngToSDLExpectedFormat("./assets/crab.png", width, height);
+    auto texture = LoadPngToSDLExpectedFormat("./assets/f22.png", width, height);
     textureMesh.width = width;
     textureMesh.height = height;
     textureMesh.data.insert(textureMesh.data.end(), std::make_move_iterator(texture.begin()), std::make_move_iterator(texture.end()));

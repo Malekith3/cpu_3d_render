@@ -13,5 +13,6 @@ constexpr size_t COLOR_BUFFER_SIZE = WINDOW_WIDTH*WINDOW_HEIGHT;
 constexpr uint32_t ZERO_VALUE_COLOR_BUFFER = 0x000000FF;
 constexpr uint32_t ERROR_COLOR = 0xFFFF00FF;
 using ColorBufferArray = std::vector<uint32_t>;
+using ZBufferArray = std::vector<float>;
 
 #endif //COMMONDEFINES_H

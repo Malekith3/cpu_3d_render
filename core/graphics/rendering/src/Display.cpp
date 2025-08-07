@@ -292,9 +292,9 @@ void drawFilledTriangleFlatBottom(ColorBufferArray& colorBuffer, const Triangle&
 
 internal void drawTexel(ColorBufferArray& colorBuffer,
                         Texture2dArray& texture,
+                        ZBufferArray& zBuffer,
                         const TriangleTextured& triangle,
-                        int xCoord,
-                        int yCoord)
+                        int xCoord, int yCoord)
 {
     vect2_t<float> pointP{static_cast<float>(xCoord), static_cast<float>(yCoord)};
     const auto& [pointA, pointB, pointC] = triangle.getPoints();
@@ -313,13 +313,21 @@ internal void drawTexel(ColorBufferArray& colorBuffer,
     const size_t texelIndexX = static_cast<size_t>(interpolatedU * static_cast<float>(texture.width)) % texture.width;
     const size_t texelIndexY = static_cast<size_t>(interpolatedV * static_cast<float>(texture.height)) % texture.height;
 
-    if (const size_t textureIndex = (texture.width * texelIndexY) + texelIndexX; textureIndex < texture.data.size())
+    const size_t texelIndex = (texture.width * texelIndexY) + texelIndexX;
+    const size_t pixelIndex = (WINDOW_WIDTH * yCoord) + xCoord;
+    const float cameraAdjustedInterpolatedReciprocalW = 1.0f - interpolatedReciprocalW;
+
+    if (cameraAdjustedInterpolatedReciprocalW < zBuffer[pixelIndex])
     {
-        drawPixel(colorBuffer, xCoord, yCoord, texture.data[textureIndex]);
-    }
-    else
-    {
-        drawPixel(colorBuffer, xCoord, yCoord, ERROR_COLOR);
+        if (texelIndex < texture.data.size())
+        {
+            drawPixel(colorBuffer, xCoord, yCoord, texture.data[texelIndex]);
+            zBuffer[pixelIndex] =  cameraAdjustedInterpolatedReciprocalW;
+        }
+        else
+        {
+            drawPixel(colorBuffer, xCoord, yCoord, ERROR_COLOR);
+        }
     }
 
 }
@@ -337,7 +345,7 @@ internal void drawTexel(ColorBufferArray& colorBuffer,
 //        (x2,y2)
 //
 ///////////////////////////////////////////////////////////////////////////////
-void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, Texture2dArray& texture, TriangleTextured &triangle)
+void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, Texture2dArray& texture, TriangleTextured& triangle, ZBufferArray& zBuffer)
 {
     auto& vertices = triangle._pointsWithUV;
 
@@ -379,7 +387,7 @@ void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, Texture2dArray& 
 
         for (int x = xStart; x < xEnd; x++)
         {
-            drawTexel(colorBuffer, texture, triangle, x, y);
+            drawTexel(colorBuffer, texture, zBuffer, triangle, x, y);
         }
     }
 }
@@ -397,7 +405,7 @@ void drawFlatTopTriangleTextured(ColorBufferArray& colorBuffer, Texture2dArray& 
 //  (x1,y1)------(x2,y2)
 //
 ///////////////////////////////////////////////////////////////////////////////
-void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, Texture2dArray& texture, TriangleTextured &triangle)
+void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, Texture2dArray& texture, TriangleTextured &triangle, ZBufferArray& zBuffer)
 {
     auto& vertices = triangle._pointsWithUV;
 
@@ -439,7 +447,7 @@ void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, Texture2dArra
 
         for (int x = xStart; x < xEnd; x++)
         {
-            drawTexel(colorBuffer, texture, triangle, x, y);
+            drawTexel(colorBuffer, texture, zBuffer, triangle, x, y);
         }
     }
 }
@@ -447,7 +455,7 @@ void drawFlatBottomTriangleTextured(ColorBufferArray& colorBuffer, Texture2dArra
 ///////////////////////////////////////////////////////////////////////////////
 // Main triangle drawing function with proper triangle splitting
 ///////////////////////////////////////////////////////////////////////////////
-void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle, Texture2dArray& texture)
+void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangle, Texture2dArray& texture, ZBufferArray& zBuffer)
 {
     const TriangleTextured triangleTextured{triangle};
     auto vertices = triangleTextured._pointsWithUV; // Make a copy for sorting
@@ -469,7 +477,7 @@ void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangl
     {
         TriangleTextured flatBottomTri;
         flatBottomTri._pointsWithUV = {v0, v1, v2};
-        drawFlatBottomTriangleTextured(colorBuffer, texture, flatBottomTri);
+        drawFlatBottomTriangleTextured(colorBuffer, texture, flatBottomTri, zBuffer);
         return;
     }
 
@@ -477,7 +485,7 @@ void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangl
     {
         TriangleTextured flatTopTri;
         flatTopTri._pointsWithUV = {v0, v1, v2};
-        drawFlatTopTriangleTextured(colorBuffer, texture, flatTopTri);
+        drawFlatTopTriangleTextured(colorBuffer, texture, flatTopTri, zBuffer);
         return;
     }
 
@@ -516,12 +524,12 @@ void drawTexturedTriangle(ColorBufferArray& colorBuffer, const Triangle& triangl
     // Top vertex: v0, Bottom edge: v1 and splitVertex
     TriangleTextured upperTri;
     upperTri._pointsWithUV = {v0, v1, splitVertex};
-    drawFlatBottomTriangleTextured(colorBuffer, texture, upperTri);
+    drawFlatBottomTriangleTextured(colorBuffer, texture, upperTri, zBuffer);
 
     // Draw lower triangle (flat-top)
     // Top edge: v1 and splitVertex, Bottom vertex: v2
     TriangleTextured lowerTri;
     lowerTri._pointsWithUV = {v1, splitVertex, v2};
-    drawFlatTopTriangleTextured(colorBuffer, texture, lowerTri);
+    drawFlatTopTriangleTextured(colorBuffer, texture, lowerTri, zBuffer);
 }
 }
