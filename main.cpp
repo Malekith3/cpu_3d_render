@@ -3,6 +3,7 @@
 #include <format>
 #include <fstream>
 #include <iostream>
+#include <utility>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -20,22 +21,24 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "common/inc/lodepng.h"
+#include "core/graphics/camera/inc/Camera.h"
 
 namespace
 {
-    vect3_t<float> cameraPosition{0.0f,0.0f,0.0f};
+    Camera camera;
     std::vector<Triangle> trianglesToRender;
     Mesh globalMesh;
     Texture2dArray textureMesh;
     glm::mat4x4 projectionMat{0};
     ZBufferArray zBuffer;
 
-    enum class VertexPoint : uint8_t
+    enum VertexPoint : size_t
     {
         A,
         B,
         C
     };
+
 
     enum class RenderingStates : uint8_t
     {
@@ -49,6 +52,8 @@ namespace
 
     bool isBackFaceCullingEnabled{false};
     RenderingStates renderingState{RenderingStates::TEXTURED_TRIANGLES};
+
+    constexpr vect3_t<float> ROTATION{-0.2f, 0.0f, 0.0f};
 
 }
 
@@ -113,65 +118,74 @@ int InitWindow(SDL_Renderer*& renderer, SDL_Window*& window)
 
 }
 
-void processKeyInput(const SDL_Keycode keycode, bool& isQuitEvent)
+void handleMovement(const SDL_Keycode key, const bool pressed)
 {
-    switch (keycode)
-    {
-        case SDLK_1:
-            //Pressing “1” displays the wireframe and a small red dot for each triangle vertex
-            renderingState = RenderingStates::WIREFRAME_WITH_VERTICES;
-            break;
-        case SDLK_2:
-            //Pressing “2” displays only the wireframe lines
-            renderingState = RenderingStates::WIREFRAME_ONLY;
-            break;
-        case SDLK_3:
-            //Pressing “3” displays filled triangles with a solid color
-            renderingState = RenderingStates::FILLED_TRIANGLES;
-            break;
-        case SDLK_4:
-            //Pressing “4” displays both filled triangles and wireframe lines
-            renderingState = RenderingStates::FILLED_TRIANGLES_WITH_WIREFRAME;
-            break;
-        case SDLK_5:
-            renderingState = RenderingStates::TEXTURED_TRIANGLES;
-            break;
-        case SDLK_6:
-            renderingState = RenderingStates::TEXTURED_TRIANGLES_WITH_WIREFRAME;
-            break;
-        case SDLK_c:
-            //Pressing “c” we should enable back-face culling
-            isBackFaceCullingEnabled = true;
-            break;
-        case SDLK_d:
-            //Pressing “d” we should disable the back-face cullin
-            isBackFaceCullingEnabled = false;
-            break;
-        case SDLK_ESCAPE:
-            isQuitEvent = true;
-        default:
-            break;
-    }
+    constexpr float speed = 0.5f;
+    constexpr float rotationSpeed = 0.25f;
 
+    const float move = pressed ? speed : 0.0f;
+    const float rot  = pressed ? rotationSpeed : 0.0f;
+
+    switch (key)
+    {
+        case SDLK_w: camera._velocity.x = move; break;
+        case SDLK_s: camera._velocity.x = -move; break;
+        case SDLK_UP: camera._velocity.y = move; break;
+        case SDLK_DOWN: camera._velocity.y = -move; break;
+        case SDLK_a: camera._yaw = -rot; break;
+        case SDLK_d: camera._yaw = rot; break;
+        default: break;
+    }
+}
+
+void handleControlKey(const SDL_Keycode key, bool& isQuitEvent)
+{
+    switch (key)
+    {
+        case SDLK_1: renderingState = RenderingStates::WIREFRAME_WITH_VERTICES; break;
+        case SDLK_2: renderingState = RenderingStates::WIREFRAME_ONLY; break;
+        case SDLK_3: renderingState = RenderingStates::FILLED_TRIANGLES; break;
+        case SDLK_4: renderingState = RenderingStates::FILLED_TRIANGLES_WITH_WIREFRAME; break;
+        case SDLK_5: renderingState = RenderingStates::TEXTURED_TRIANGLES; break;
+        case SDLK_6: renderingState = RenderingStates::TEXTURED_TRIANGLES_WITH_WIREFRAME; break;
+        case SDLK_c: isBackFaceCullingEnabled = true; break;
+        case SDLK_v: isBackFaceCullingEnabled = false; break;
+        case SDLK_ESCAPE: isQuitEvent = true; break;
+        default: break;
+    }
 }
 
 void processInput(bool& isQuitEvent)
 {
     SDL_Event e;
-    auto getKeySymbol= [](const SDL_Event& event){ return event.key.keysym.sym;};
-    while (SDL_PollEvent(&e) != 0)
+    while (SDL_PollEvent(&e))
     {
-        switch (e.type)
+        if (e.type == SDL_QUIT)
         {
-            case SDL_QUIT:
-                isQuitEvent = true;
-                break;
+            isQuitEvent = true;
+            continue;
+        }
 
-            case SDL_KEYDOWN:
-                processKeyInput(getKeySymbol(e), isQuitEvent);
-                break;
-            default:
-                break;
+        if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)
+        {
+            const bool pressed = (e.type == SDL_KEYDOWN);
+
+            // movement keys
+            switch (const auto key = e.key.keysym.sym)
+            {
+                case SDLK_w:
+                case SDLK_s:
+                case SDLK_a:
+                case SDLK_d:
+                case SDLK_UP:
+                case SDLK_DOWN:
+                    handleMovement(key, pressed);
+                    break;
+
+                default:
+                    handleControlKey(key, isQuitEvent);
+                    break;
+            }
         }
     }
 }
@@ -181,6 +195,7 @@ void update()
     static Uint64 prevFrameTime;
     const auto currentFrameTime = SDL_GetTicks64();
     const auto deltaTime = currentFrameTime - prevFrameTime;
+    const auto deltaTimeSec = deltaTime * 0.001f;
     const auto timeToWait = FRAME_TIME - deltaTime;
 
     trianglesToRender.clear();
@@ -191,9 +206,16 @@ void update()
     }
 
     prevFrameTime = SDL_GetTicks64();
-    globalMesh.rotation.x += -0.2;
-    globalMesh.rotation.y += +0.0;
-    globalMesh.rotation.z += +0.0;
+    // globalMesh.rotation.x += ROTATION.x;
+    // globalMesh.rotation.y += ROTATION.y;
+    // globalMesh.rotation.z += ROTATION.z;
+    globalMesh.translation.z = 4.0f;
+
+    //Create the view matrix
+    auto target = glm::vec3(0.0f,0.0f,1.0f);
+    camera.updateTick(deltaTimeSec,target);
+    glm::mat4x4 viewMat = Utils::lookAtMat(to_glm(camera._position),target,{0,1,0});
+
 
     static auto offsetIndex = [](const int index){return index - 1;};
     for (const auto& [aFaceVert, bFaceVert, cFaceVert, meshColor, a_uv,b_uv,c_uv] : globalMesh.faces)
@@ -207,33 +229,48 @@ void update()
         std::array<vect3_t<float>,3> transformedVertices{};
 
         //Transform
-        std::ranges::transform(faceVert, transformedVertices.begin(), [](const auto& vert)
+        std::ranges::transform(faceVert, transformedVertices.begin(),
+            [&viewMat](const auto& vert)
             {
-                const glm::vec4 glmVert(vert.x,vert.y,vert.z, 1.0f);
-                const glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(globalMesh.rotation.x), glm::vec3(1, 0, 0)) *
-                                                 glm::rotate(glm::mat4(1.0f), glm::radians(globalMesh.rotation.y), glm::vec3(0, 1, 0)) *
-                                                 glm::rotate(glm::mat4(1.0f), glm::radians(globalMesh.rotation.z), glm::vec3(0, 0, 1));
+                const glm::vec4 vertHomogeneous(vert.x, vert.y, vert.z, 1.0f);
 
+                // Scale
+                const glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f),
+                    glm::vec3(globalMesh.scale.x,
+                              globalMesh.scale.y,
+                              globalMesh.scale.z));
 
-                const glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(globalMesh.translation.x, globalMesh.translation.y, 5.0f));  // Translate Z by 5.0f
-                const glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(globalMesh.scale.x, globalMesh.scale.y, globalMesh.scale.z));
-                const glm::mat4 transformMatrix =  translationMatrix * rotationMatrix * scaleMatrix;
-                const glm::vec4 transformedVert = transformMatrix * glmVert;
+                // Rotation (X → Y → Z)
+                const glm::mat4 rotationMatrix =
+                    glm::rotate(glm::mat4(1.0f), glm::radians(globalMesh.rotation.x), glm::vec3(1, 0, 0)) *
+                    glm::rotate(glm::mat4(1.0f), glm::radians(globalMesh.rotation.y), glm::vec3(0, 1, 0)) *
+                    glm::rotate(glm::mat4(1.0f), glm::radians(globalMesh.rotation.z), glm::vec3(0, 0, 1));
 
-                return vect3_t(transformedVert.x, transformedVert.y, transformedVert.z);
+                // Translation
+                const glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f),
+                    glm::vec3(globalMesh.translation.x,
+                              globalMesh.translation.y,
+                              globalMesh.translation.z));
+
+                // World matrix (T * R * S)
+                const glm::mat4 worldMatrix = translationMatrix * rotationMatrix * scaleMatrix;
+
+                // Apply world, then view
+                const glm::vec4 transformedVert = viewMat * worldMatrix * vertHomogeneous;
+
+                return vect3_t<float>(transformedVert.x,
+                                      transformedVert.y,
+                                      transformedVert.z);
             });
 
         auto isRenderTriangle{true};
-
         //Culling
-        auto vectorAB = transformedVertices[static_cast<size_t>(VertexPoint::B)] -
-                                    transformedVertices[static_cast<size_t>(VertexPoint::A)];
-        auto vectorAC =  transformedVertices[static_cast<size_t>(VertexPoint::C)] -
-                                     transformedVertices[static_cast<size_t>(VertexPoint::A)];
-        auto cameraVector =     cameraPosition -
-                                            transformedVertices[static_cast<size_t>(VertexPoint::A)];
+        auto vectorAB =  transformedVertices[VertexPoint::B] - transformedVertices[VertexPoint::A];
+        auto vectorAC =  transformedVertices[VertexPoint::C] - transformedVertices[VertexPoint::A];
+        vect3_t<float> origin{0.0f, 0.0f, 0.0f};
+        auto cameraVector =  origin - transformedVertices[VertexPoint::A];
         auto faceNormal = vectorAB.cross(vectorAC).normalize();
-        auto projectionNormal = faceNormal.dot(cameraVector);
+        const auto projectionNormal = faceNormal.dot(cameraVector);
 
         if (isBackFaceCullingEnabled)
         {
@@ -265,9 +302,6 @@ void update()
                 });
             trianglesToRender.push_back(projectedTriangle);
         }
-
-
-
     }
 
     std::ranges::sort(trianglesToRender, [](auto& firstTriangle, auto& secondTriangle)

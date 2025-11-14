@@ -54,4 +54,18 @@ glm::vec4 projectWithMat(const glm::mat4x4& projectMatrix, const glm::vec4& vec)
 
     return projectedVect;
 }
+
+glm::mat4x4 lookAtMat(const glm::vec3& eye, const glm::vec3& target, const glm::vec3& up)
+{
+    auto z = normalize(target - eye);
+    auto x = normalize(glm::cross(up,z));
+    auto y = cross(z, x);
+
+    return {
+        { x.x,  y.x,  z.x, 0.0f },
+        { x.y,  y.y,  z.y, 0.0f },
+        { x.z,  y.z,  z.z, 0.0f },
+        { -glm::dot(x, eye), -glm::dot(y, eye), -glm::dot(z, eye), 1.0f }
+    };
+}
 }
