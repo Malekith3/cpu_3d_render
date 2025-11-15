@@ -4,6 +4,8 @@ project(MinimalSDL2App CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
+# Sadly its required to make this cross-platform at elast for linx and win systems
 if(WIN32)
 
     # Embed runtime and libstdc++ for Windows static build
@@ -12,10 +14,14 @@ if(WIN32)
 
 endif()
 
-# Clone SDL2 if not present
+
+# -------------------------------------------------------------
+# External Dependencies
+# -------------------------------------------------------------
+# SDL2
 if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/SDL2")
     execute_process(
-            COMMAND git clone --branch SDL2 https://github.com/libsdl-org/SDL.git external/SDL2
+            COMMAND git clone --branch SDL2 https://github.com/libsdl-org/SDL.git "${CMAKE_SOURCE_DIR}/external/SDL2"
             RESULT_VARIABLE result
     )
     if(result)
@@ -23,10 +29,10 @@ if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/SDL2")
     endif()
 endif()
 
-# Clone GLM if not present
+# GLM
 if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/glm")
     execute_process(
-            COMMAND git clone https://github.com/g-truc/glm.git external/glm
+            COMMAND git clone https://github.com/g-truc/glm.git "${CMAKE_SOURCE_DIR}/external/glm"
             RESULT_VARIABLE result
     )
     if(result)
@@ -34,15 +40,17 @@ if(NOT EXISTS "${CMAKE_SOURCE_DIR}/external/glm")
     endif()
 endif()
 
-# Clone Doctest if not present
-set(DOCTEST_DIR ${CMAKE_SOURCE_DIR}/external/doctest)
+# Doctest (header-only)
+# Download doctest.h directly instead of cloning full repo.
+# This avoids pulling unnecessary files and keeps the external/
+# directory minimal. No hash check is used because doctest updates
+# frequently, and pinning a hash would require maintenance.
+set(DOCTEST_DIR "${CMAKE_SOURCE_DIR}/external/doctest")
 
-# Download doctest.h only if it doesn't exist
 if(NOT EXISTS "${DOCTEST_DIR}/doctest.h")
     file(DOWNLOAD
             https://raw.githubusercontent.com/doctest/doctest/master/doctest/doctest.h
-            ${DOCTEST_DIR}/doctest.h
-            EXPECTED_MD5 ""
+            "${DOCTEST_DIR}/doctest.h"
             SHOW_PROGRESS
             STATUS download_status
     )
@@ -51,6 +59,7 @@ if(NOT EXISTS "${DOCTEST_DIR}/doctest.h")
         message(FATAL_ERROR "Failed to download doctest.h")
     endif()
 endif()
+# -------------------------------------------------------------
 
 # Add subdirectories
 add_subdirectory(external/SDL2)
