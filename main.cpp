@@ -20,8 +20,9 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "common/inc/lodepng.h"
+#include "common/inc/Lodepng.h"
 #include "core/graphics/camera/inc/Camera.h"
+#include "graphics/clipping/inc/Clipping.h"
 
 namespace
 {
@@ -31,6 +32,7 @@ namespace
     Texture2dArray textureMesh;
     glm::mat4x4 projectionMat{0};
     ZBufferArray zBuffer;
+    std::unique_ptr<Frustum> frustum;
 
     enum VertexPoint : size_t
     {
@@ -72,16 +74,21 @@ std::vector<uint32_t> LoadPngToSDLExpectedFormat(const std::string& filePath, in
     width = static_cast<int>(w);
     height = static_cast<int>(h);
     const size_t pixelCount = static_cast<size_t>(width) * height;
-    constexpr int numberOfChannels = 4;
     std::vector<uint32_t> result;
     result.reserve(pixelCount);
 
     for (size_t i = 0; i < pixelCount; ++i)
     {
-        uint8_t r = image[i * numberOfChannels + 0];
-        uint8_t g = image[i * numberOfChannels + 1];
-        uint8_t b = image[i * numberOfChannels + 2];
-        uint8_t a = image[i * numberOfChannels + 3];
+        constexpr size_t C_CH_OFFSET{3u};
+        constexpr size_t B_CH_OFFSET{2u};
+        constexpr size_t G_CH_OFFSET{1u};
+        constexpr size_t R_CH_OFFSET{0u};
+        constexpr int numberOfChannels = 4;
+
+        const uint8_t r = image[i * numberOfChannels + R_CH_OFFSET];
+        const uint8_t g = image[i * numberOfChannels + G_CH_OFFSET];
+        const uint8_t b = image[i * numberOfChannels + B_CH_OFFSET];
+        const uint8_t a = image[i * numberOfChannels + C_CH_OFFSET];
 
         result.push_back((r << 24) | (g << 16) | (b << 8) | a);
     }
@@ -277,7 +284,12 @@ void update()
             isRenderTriangle = projectionNormal >= -std::numeric_limits<float>::epsilon();
         }
 
+        Polygon polygon{transformedVertices};
+        auto clippedPolygon = frustum->ClipPolygon(polygon);
 
+        //TODO add split polygon to triangles
+
+        // Projection to screen space
         if (isRenderTriangle)
         {
             Triangle projectedTriangle;
@@ -318,9 +330,12 @@ void render(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*
       SDL_UpdateTexture(colorBufferTexture, nullptr, colorBuffer.data(), static_cast<int>(WINDOW_WIDTH * sizeof(uint32_t)));
       SDL_RenderCopy(renderer, colorBufferTexture, nullptr, nullptr);
     };
-
+    static int cnt;
+    cnt = 0;
     for (auto& triangle : trianglesToRender)
     {
+        cnt++;
+        if (cnt != 1) continue;
         auto points{triangle._points};
         auto [point0,point1,point2] = points;
 
@@ -386,20 +401,18 @@ void setup(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*&
     constexpr float zFar = 100.0f;
 
     projectionMat = Utils::makePerspectiveMat4(fov, aspect, zNear, zFar);
+    frustum = std::make_unique<Frustum>(fov, zNear, zFar);
 
     std::vector<vect3_t<float>> loadedVertex;
     std::vector<Face> loadedFaces;
-    LoadOBJFileSimplified("./assets/f22.obj", loadedVertex, loadedFaces);
-    // std::ranges::copy(cubeMeshFaces, std::back_inserter(loadedFaces));
-    // std::ranges::copy(cubeMeshVert, std::back_inserter(loadedVertex));
-
+    LoadOBJFileSimplified("./assets/cube.obj", loadedVertex, loadedFaces);
 
     std::vector<unsigned char> png;
     std::vector<unsigned char> image; //the raw pixels
     int width, height;
 
     //load and decode
-    auto texture = LoadPngToSDLExpectedFormat("./assets/f22.png", width, height);
+    auto texture = LoadPngToSDLExpectedFormat("./assets/cube.png", width, height);
     textureMesh.width = width;
     textureMesh.height = height;
     textureMesh.data.insert(textureMesh.data.end(), std::make_move_iterator(texture.begin()), std::make_move_iterator(texture.end()));
