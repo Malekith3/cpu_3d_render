@@ -76,8 +76,14 @@ foreach(file IN LISTS CORE_SRC_FILES)
 endforeach()
 
 # Executable
-add_executable(${PROJECT_NAME} main.cpp ${CORE_SRC_FILES})
+add_executable(${PROJECT_NAME} main.cpp ${CORE_SRC_FILES}
+        core/logger/LogHelper.h)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/core)
+
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_DEBUG_LOGS)
+endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE SDL_MAIN_HANDLED)
 target_link_libraries(${PROJECT_NAME}

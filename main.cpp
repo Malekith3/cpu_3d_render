@@ -23,6 +23,7 @@
 #include "common/inc/Lodepng.h"
 #include "core/graphics/camera/inc/Camera.h"
 #include "graphics/clipping/inc/Clipping.h"
+#include "logger/LogHelper.h"
 
 namespace
 {
@@ -286,19 +287,16 @@ void update()
 
         Polygon polygon{transformedVertices};
         auto clippedPolygon = frustum->ClipPolygon(polygon);
+        auto trianglesAfterClipping = clippedPolygon.polygon2Triangles();
 
-        //TODO add split polygon to triangles
-
-        // Projection to screen space
-        if (isRenderTriangle)
-        {
+        auto projectTriangle = [&](std::array<vect3_t<float>,3>& triangleToProject) {
             Triangle projectedTriangle;
             const auto& globalLight {getGlobalLight()};
             const float lightIntensity = -faceNormal.dot(globalLight._direction);
             projectedTriangle._color = applyIntensityToColor(meshColor, lightIntensity);
             projectedTriangle.textCoord = std::array<Texture2d,3>{{{a_uv},{b_uv},{c_uv}}};
-            projectedTriangle.setAvgDepth((transformedVertices[0].z + transformedVertices[1].z + transformedVertices[2].z) / 3.0f);
-            std::ranges::transform(transformedVertices, projectedTriangle._points.begin(), [](auto& vert)
+            projectedTriangle.setAvgDepth((triangleToProject[0].z + triangleToProject[1].z + triangleToProject[2].z) / 3.0f);
+            std::ranges::transform(triangleToProject, projectedTriangle._points.begin(), [](auto& vert)
                 {
                     auto res = Utils::projectWithMat(projectionMat,{vert.x,vert.y,vert.z,1});
 
@@ -313,6 +311,12 @@ void update()
                     return res;
                 });
             trianglesToRender.push_back(projectedTriangle);
+        };
+
+        // Projection to screen space
+        if (isRenderTriangle)
+        {
+            std::ranges::for_each(trianglesAfterClipping, projectTriangle);
         }
     }
 
@@ -330,12 +334,9 @@ void render(SDL_Renderer*& renderer, ColorBufferArray& colorBuffer, SDL_Texture*
       SDL_UpdateTexture(colorBufferTexture, nullptr, colorBuffer.data(), static_cast<int>(WINDOW_WIDTH * sizeof(uint32_t)));
       SDL_RenderCopy(renderer, colorBufferTexture, nullptr, nullptr);
     };
-    static int cnt;
-    cnt = 0;
+
     for (auto& triangle : trianglesToRender)
     {
-        cnt++;
-        if (cnt != 1) continue;
         auto points{triangle._points};
         auto [point0,point1,point2] = points;
 
@@ -439,6 +440,7 @@ void CleanUp(SDL_Window*& window, SDL_Renderer*& renderer, SDL_Texture*& texture
 
 int main(int argc, char* argv[])
 {
+    DEBUG_LOG("CPU raster Started");
     SDL_Renderer* renderer{nullptr};
     SDL_Window* window{nullptr};
 

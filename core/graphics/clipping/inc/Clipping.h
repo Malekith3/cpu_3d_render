@@ -34,6 +34,8 @@ struct Polygon
     size_t numVertices{};
     Polygon() = default;
     explicit Polygon(std::array<vect3_t<float>, TRIANGLE_VERTICES_COUNT>& triangleVert);
+
+    [[nodiscard]] std::vector<std::array<vect3_t<float>, TRIANGLE_VERTICES_COUNT>>  polygon2Triangles() const;
 };
 
 struct Frustum
@@ -46,7 +48,7 @@ struct Frustum
     //Clip given polygon aginst current initilised frustum that was configured with ctor fov, zNear, zFar
     [[nodiscard]] Polygon ClipPolygon(const Polygon& polygon) const;
 private:
-    void clipAgainstPlanes(const Plane& plane, Polygon& polygon) const;
+    static void clipAgainstPlanes(const Plane& plane, Polygon& polygon);
     std::array<Plane, PlanesNames::NUMBER_OF_PLANES> planes{};
 };
 

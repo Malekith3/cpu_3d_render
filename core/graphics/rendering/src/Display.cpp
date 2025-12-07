@@ -11,6 +11,7 @@
 #include <span>
 
 #include "glm/mat4x4.hpp"
+#include "logger/LogHelper.h"
 
 #define internal static
 
@@ -44,6 +45,11 @@ void drawRect(ColorBufferArray& colorBuffer, const int posX, const int posY, con
     while (numberOfRow < posY + height)
     {
         const size_t startIdx = numberOfRow * WINDOW_WIDTH + posX;
+
+        if (startIdx >= colorBuffer.size()) {
+            return;
+        }
+
         auto row = std::span(colorBuffer.data() + startIdx, width);
         std::ranges::fill(row, color);
         numberOfRow++;
@@ -317,17 +323,18 @@ internal void drawTexel(ColorBufferArray& colorBuffer,
     const size_t pixelIndex = (WINDOW_WIDTH * yCoord) + xCoord;
     const float cameraAdjustedInterpolatedReciprocalW = 1.0f - interpolatedReciprocalW;
 
-    if (cameraAdjustedInterpolatedReciprocalW < zBuffer[pixelIndex])
+    if (zBuffer.size() < pixelIndex || cameraAdjustedInterpolatedReciprocalW >= zBuffer[pixelIndex]) {
+        return;
+    }
+
+    if (texelIndex < texture.data.size())
     {
-        if (texelIndex < texture.data.size())
-        {
-            drawPixel(colorBuffer, xCoord, yCoord, texture.data[texelIndex]);
-            zBuffer[pixelIndex] =  cameraAdjustedInterpolatedReciprocalW;
-        }
-        else
-        {
-            drawPixel(colorBuffer, xCoord, yCoord, ERROR_COLOR);
-        }
+        drawPixel(colorBuffer, xCoord, yCoord, texture.data[texelIndex]);
+        zBuffer[pixelIndex] =  cameraAdjustedInterpolatedReciprocalW;
+    }
+    else
+    {
+        drawPixel(colorBuffer, xCoord, yCoord, ERROR_COLOR);
     }
 
 }
