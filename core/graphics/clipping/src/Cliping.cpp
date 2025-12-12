@@ -24,7 +24,7 @@
 //           \|/
 //
 ///////////////////////////////////////////////////////////////////////////////
-Frustum::Frustum(const float fov, const float zNear, const float zFar)
+Frustum::Frustum(const float fovX, const float fovY, const float zNear, const float zFar)
 {
     auto &leftPlane = planes[PlanesNames::LEFT_FRUSTUM_PLANE];
     auto &rightPlane = planes[PlanesNames::RIGHT_FRUSTUM_PLANE];
@@ -40,14 +40,19 @@ Frustum::Frustum(const float fov, const float zNear, const float zFar)
     nearPlane.point = {0, 0, zNear};
     farPlane.point = {0, 0, zFar};
 
-    const auto halfFOV = fov / 2.0f;
-    const auto sinHalfFOV = std::sin(halfFOV);
-    const auto cosHalfFOV = std::cos(halfFOV);
+    const auto halfFOVX = fovX / 2.0f;
+    const auto halfFOVY = fovY / 2.0f;
 
-    leftPlane.norm = {cosHalfFOV, 0, sinHalfFOV};
-    rightPlane.norm = {-cosHalfFOV, 0, sinHalfFOV};
-    topPlane.norm = {0, -cosHalfFOV, sinHalfFOV};
-    bottomPlane.norm = {0, cosHalfFOV, sinHalfFOV};
+    const auto sinHalfFOVX = std::sin(halfFOVX);
+    const auto cosHalfFOVX = std::cos(halfFOVX);
+
+    const auto sinHalfFOVY = std::sin(halfFOVY);
+    const auto cosHalfFOVY = std::cos(halfFOVY);
+
+    leftPlane.norm = {cosHalfFOVX, 0, sinHalfFOVX};
+    rightPlane.norm = {-cosHalfFOVX, 0, sinHalfFOVX};
+    topPlane.norm = {0, -cosHalfFOVY, sinHalfFOVY};
+    bottomPlane.norm = {0, cosHalfFOVY, sinHalfFOVY};
     nearPlane.norm = {0, 0,1};
     farPlane.norm = {0, 0,-1};
 }
@@ -64,14 +69,15 @@ Polygon Frustum::ClipPolygon(const Polygon &polygon) const
     return outputPolygon;
 }
 
-void Frustum::clipAgainstPlanes(const Plane &plane, Polygon &polygon) {
+void Frustum::clipAgainstPlanes(const Plane &plane, Polygon &polygon)
+{
     if (polygon.numVertices == 0)
     {
-        DEBUG_LOG("Got Polygon without vertices");
         return;
     }
 
     std::array<vect3_t<float>, MAX_NUM_POLY_VERTICES> insideVertices{};
+    std::array<Texture2d, MAX_NUM_POLY_VERTICES> insideTexCoords{};
     std::size_t insideCount = 0u;
 
     auto signedDistance = [&plane](const vect3_t<float>& p) {
@@ -83,16 +89,28 @@ void Frustum::clipAgainstPlanes(const Plane &plane, Polygon &polygon) {
         return d >= -EPSILON;
     };
 
+    auto lerpUV = [](const Texture2d& a, const Texture2d& b, float t) -> Texture2d {
+        return Texture2d{
+            a.u + (b.u - a.u) * t,
+            a.v + (b.v - a.v) * t
+        };
+    };
+
     const std::size_t originalCount = polygon.numVertices;
 
     // Classic Sutherland–Hodgman over the polygon edges
     for (std::size_t i = 0; i < originalCount; ++i)
     {
-        const auto& current = polygon.vertices[i];
-        const auto& previous = polygon.vertices[(i + originalCount - 1) % originalCount];
+        const std::size_t prevIndex = (i + originalCount - 1) % originalCount;
 
-        const float currentDist  = signedDistance(current);
-        const float previousDist = signedDistance(previous);
+        const auto& currentPos  = polygon.vertices[i];
+        const auto& previousPos = polygon.vertices[prevIndex];
+
+        const auto& currentUV  = polygon.texCoords[i];
+        const auto& previousUV = polygon.texCoords[prevIndex];
+
+        const float currentDist  = signedDistance(currentPos);
+        const float previousDist = signedDistance(previousPos);
 
         const bool currentInside  = isInside(currentDist);
         const bool previousInside = isInside(previousDist);
@@ -101,46 +119,48 @@ void Frustum::clipAgainstPlanes(const Plane &plane, Polygon &polygon) {
         if (currentInside != previousInside)
         {
             const float denom = (previousDist - currentDist);
-
-            // Just in case: avoid division by ~0 (shouldn't really happen if we’re here)
             if (std::abs(denom) <= EPSILON)
             {
-                DEBUG_LOG("Division by zero");
                 continue;
             }
 
             const float t = previousDist / denom;
 
-            const vect3_t<float> intersection = previous + (current - previous) * t; //Qp + t(Qc - Qp)
+            const vect3_t<float> intersectionPos = previousPos + (currentPos - previousPos) * t;
+            const Texture2d intersectionUV = lerpUV(previousUV, currentUV, t);
 
-            if (insideCount < MAX_NUM_POLY_VERTICES) {
-                insideVertices[insideCount++] = intersection;
+            if (insideCount < MAX_NUM_POLY_VERTICES)
+            {
+                insideVertices[insideCount] = intersectionPos;
+                insideTexCoords[insideCount] = intersectionUV;
+                ++insideCount;
             }
-
         }
 
         // Case 2: current vertex is inside -> keep it
         if (currentInside && insideCount < MAX_NUM_POLY_VERTICES)
         {
-                insideVertices[insideCount++] = current;
+            insideVertices[insideCount] = currentPos;
+            insideTexCoords[insideCount] = currentUV;
+            ++insideCount;
         }
     }
 
-
-
     if (insideCount == 0)
+    {
+        polygon.numVertices = 0;
         return;
+    }
 
     polygon.numVertices = insideCount;
     std::ranges::copy_n(insideVertices.begin(), insideCount, polygon.vertices.begin());
-
-    DEBUG_LOG("Clipped polygon with {} vertices", insideCount);
-
+    std::ranges::copy_n(insideTexCoords.begin(), insideCount, polygon.texCoords.begin());
 }
 
-Polygon::Polygon(std::array<vect3_t<float>, TRIANGLE_VERTICES_COUNT> &triangleVert)
+Polygon::Polygon(std::array<vect3_t<float>, TRIANGLE_VERTICES_COUNT> &triangleVert, std::array<Texture2d, TRIANGLE_VERTICES_COUNT> triTexCoords)
 {
     std::ranges::copy_n(triangleVert.begin(), TRIANGLE_VERTICES_COUNT, vertices.begin());
+    std::ranges::copy_n(triTexCoords.begin(), TRIANGLE_VERTICES_COUNT, texCoords.begin());
     numVertices = TRIANGLE_VERTICES_COUNT;
 }
 
@@ -161,4 +181,20 @@ std::vector<std::array<vect3_t<float>, 3>> Polygon::polygon2Triangles() const
     return triangles;
 }
 
+std::vector<std::array<Texture2d, TRIANGLE_VERTICES_COUNT>> Polygon::polygon2TrianglesTex() const
+{
+    std::vector<std::array<Texture2d, TRIANGLE_VERTICES_COUNT>> triangles;
+
+    if (numVertices < 3)
+        return triangles;
+
+    triangles.reserve(numVertices - 2);
+
+    for (size_t i = 1; i + 1 < numVertices; i++)
+    {
+        triangles.push_back({ texCoords[0], texCoords[i], texCoords[i + 1] });
+    }
+
+    return triangles;
+}
 

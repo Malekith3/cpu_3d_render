@@ -41,30 +41,43 @@ void drawGrid(ColorBufferArray& colorBuffer, uint32_t gridColor, size_t gridSpac
 
 void drawRect(ColorBufferArray& colorBuffer, const int posX, const int posY, const size_t width, const size_t height, const uint32_t color)
 {
-    size_t numberOfRow = posY;
-    while (numberOfRow < posY + height)
+    if (width == 0 || height == 0) {
+        return;
+    }
+
+    // Clip rect to screen bounds
+    const int x0 = std::max(0, posX);
+    const int y0 = std::max(0, posY);
+    const int x1 = std::min<int>(static_cast<int>(WINDOW_WIDTH),  posX + static_cast<int>(width));
+    const int y1 = std::min<int>(static_cast<int>(WINDOW_HEIGHT), posY + static_cast<int>(height));
+
+    if (x0 >= x1 || y0 >= y1) {
+        return;
+    }
+
+    for (int y = y0; y < y1; ++y)
     {
-        const size_t startIdx = numberOfRow * WINDOW_WIDTH + posX;
+        const size_t startIdx = static_cast<size_t>(y) * WINDOW_WIDTH + static_cast<size_t>(x0);
+        const size_t rowWidth = static_cast<size_t>(x1 - x0);
 
-        if (startIdx >= colorBuffer.size()) {
-            return;
-        }
-
-        auto row = std::span(colorBuffer.data() + startIdx, width);
+        auto row = std::span(colorBuffer.data() + startIdx, rowWidth);
         std::ranges::fill(row, color);
-        numberOfRow++;
     }
 }
 
 void drawPixel(ColorBufferArray& colorBuffer, const int posX, const int posY, const uint32_t color)
 {
-    if (posX == 0 || posY == 0)
-    {
+    // Proper bounds check (also allows drawing at x==0 or y==0)
+    if (posX < 0 || posY < 0) {
         return;
     }
 
-    if (const size_t index{WINDOW_WIDTH*posY + posX};
-        index < colorBuffer.size())
+    if (posX >= static_cast<int>(WINDOW_WIDTH) || posY >= static_cast<int>(WINDOW_HEIGHT)) {
+        return;
+    }
+
+    const size_t index = WINDOW_WIDTH * posY + posX;
+    if (index < colorBuffer.size())
     {
         colorBuffer[index] = color;
     }
@@ -316,14 +329,14 @@ internal void drawTexel(ColorBufferArray& colorBuffer,
     interpolatedU /= interpolatedReciprocalW;
     interpolatedV /= interpolatedReciprocalW;
 
-    const size_t texelIndexX = static_cast<size_t>(interpolatedU * static_cast<float>(texture.width)) % texture.width;
-    const size_t texelIndexY = static_cast<size_t>(interpolatedV * static_cast<float>(texture.height)) % texture.height;
+    const int texX = static_cast<int>(interpolatedU * static_cast<float>(texture.width  - 1));
+    const int texY = static_cast<int>(interpolatedV * static_cast<float>(texture.height - 1));
 
-    const size_t texelIndex = (texture.width * texelIndexY) + texelIndexX;
-    const size_t pixelIndex = (WINDOW_WIDTH * yCoord) + xCoord;
+    const size_t texelIndex = static_cast<size_t>(texture.width * texY + texX);
+    const size_t pixelIndex = static_cast<size_t>(WINDOW_WIDTH * yCoord + xCoord);
     const float cameraAdjustedInterpolatedReciprocalW = 1.0f - interpolatedReciprocalW;
 
-    if (zBuffer.size() < pixelIndex || cameraAdjustedInterpolatedReciprocalW >= zBuffer[pixelIndex]) {
+    if (pixelIndex >= zBuffer.size() || cameraAdjustedInterpolatedReciprocalW >= zBuffer[pixelIndex]) {
         return;
     }
 

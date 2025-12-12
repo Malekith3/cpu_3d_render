@@ -1,12 +1,12 @@
 #ifndef MINIMALSDL2APP_CLIPPING_H
 #define MINIMALSDL2APP_CLIPPING_H
 
-#include <algorithm>
 #include <array>
 #include <functional>
 #include <vector>
-#include <ranges>
+
 #include <common/inc/Vectors.hpp>
+#include "graphics/textures/inc/Textures.h"
 
 enum PlanesNames : size_t
 {
@@ -31,18 +31,20 @@ struct Plane
 struct Polygon
 {
     std::array<vect3_t<float>, MAX_NUM_POLY_VERTICES> vertices{};
+    std::array<Texture2d, MAX_NUM_POLY_VERTICES> texCoords{};
     size_t numVertices{};
     Polygon() = default;
-    explicit Polygon(std::array<vect3_t<float>, TRIANGLE_VERTICES_COUNT>& triangleVert);
+    explicit Polygon(std::array<vect3_t<float>, TRIANGLE_VERTICES_COUNT>& triangleVert , std::array<Texture2d, TRIANGLE_VERTICES_COUNT> triTexCoords);
 
     [[nodiscard]] std::vector<std::array<vect3_t<float>, TRIANGLE_VERTICES_COUNT>>  polygon2Triangles() const;
+    [[nodiscard]] std::vector<std::array<Texture2d, TRIANGLE_VERTICES_COUNT>>  polygon2TrianglesTex() const;
 };
 
 struct Frustum
 {
     using ClipFn = std::function<Polygon(const Polygon&, Plane&)>;
 
-    explicit Frustum(float fov, float zNear, float zFar);
+    explicit Frustum(const float fovX, const float fovY, const float zNear, const float zFar);
     [[nodiscard]] const std::array<Plane, PlanesNames::NUMBER_OF_PLANES>& getPlanes() const {return planes;}
 
     //Clip given polygon aginst current initilised frustum that was configured with ctor fov, zNear, zFar
