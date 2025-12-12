@@ -146,6 +146,8 @@ void handleMovement(const SDL_Keycode key, const bool pressed)
             // If LEFT/RIGHT feel inverted, swap these:
         case SDLK_a: camera._yaw =  rot; break;
         case SDLK_d: camera._yaw = -rot; break;
+        case SDLK_q: camera._pitch = rot; break;
+        case SDLK_e: camera._pitch = -rot; break;
 
         default: break;
     }
@@ -192,6 +194,8 @@ void processInput(bool& isQuitEvent)
                 case SDLK_a:
                 case SDLK_d:
                 case SDLK_UP:
+                case SDLK_q:
+                case SDLK_e:
                 case SDLK_DOWN:
                     handleMovement(key, pressed);
                     break;

@@ -26,16 +26,29 @@ All rendering is done manually, step by step, to gain a deep understanding of ho
 
 ---
 
-##  Current Status
-
-**Still under development** – I haven't completed the full course yet, so this project is a work in progress.  
-Features and rendering stages will be added as I progress through the lessons.
+## Current Status
+> For now, I have finished this project. Most basic features are implemented.
+> I am keeping a list of features that I want to implement in the future.
+>
+**Features**
+- [x] Basic 3D scene rendering
+- [x] Rasterization
+- [x] Basic lighting
+- [x] Basic texturing
+- [x] Frustum clipping
+- [x] Depth buffer (aka Z-buffer)
+- [x] Basic camera
+- [x] OBJ loading
+- [ ] Support for multiple meshes
+- [ ] Move clipping to clip space
+- [ ] Optimize performance
+- [ ] Index buffer for meshes
 
 ---
 
 ##  How to Build
 
-All you need is **CMake ≥ 3.15** and a GNU compiler that supports **C++23**.
+All you need is **CMake ≥ 3.15** and a GNU compiler that supports **C++23** GCC 13-15 will work fine.
 
 > ⚠️ **Disclaimer (Windows Edition)**
 >
